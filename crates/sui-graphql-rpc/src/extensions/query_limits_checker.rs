@@ -27,6 +27,7 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 pub(crate) const CONNECTION_FIELDS: [&str; 2] = ["edges", "nodes"];
+const MULTI_GET_PREFIX: &str = "multiGet";
 const DRY_RUN_TX_BLOCK: &str = "dryRunTransactionBlock";
 const EXECUTE_TX_BLOCK: &str = "executeTransactionBlock";
 
@@ -412,6 +413,10 @@ impl<'a> LimitsTraversal<'a> {
                 // for anything.
                 let name = &f.node.name.node;
                 let multiplicity = 'm: {
+                    if let Some(page_size) = self.multi_get_page_size(f)? {
+                        break 'm multiplicity * page_size;
+                    }
+
                     if !CONNECTION_FIELDS.contains(&name.as_str()) {
                         break 'm multiplicity;
                     }
@@ -452,6 +457,20 @@ impl<'a> LimitsTraversal<'a> {
         }
 
         Ok(())
+    }
+
+    /// TODO Docs
+    fn multi_get_page_size(&mut self, f: &Positioned<Field>) -> ServerResult<Option<u32>> {
+        if !f.node.name.node.starts_with(MULTI_GET_PREFIX) {
+            return Ok(None);
+        }
+
+        let keys = f.node.get_argument("keys");
+        let Some(size) = self.resolve_list_size(keys) else {
+            return Ok(None);
+        };
+
+        Ok(Some(size.try_into().map_err(|_| self.output_node_error())?))
     }
 
     /// If the field `f` is a connection, extract its page size, otherwise return `None`.
@@ -537,6 +556,23 @@ impl<'a> LimitsTraversal<'a> {
             _ => return None,
         }
         .as_u64()
+    }
+
+    /// TODO: Docs
+    fn resolve_list_size(&self, value: Option<&Positioned<Value>>) -> Option<usize> {
+        match &value?.node {
+            Value::List(list) => Some(list.len()),
+
+            Value::Variable(var) => {
+                if let ConstValue::List(list) = self.variables.get(var)? {
+                    Some(list.len())
+                } else {
+                    return None;
+                }
+            }
+
+            _ => None,
+        }
     }
 
     /// Error returned if transaction payloads exceed limit. Also sets the transaction payload
