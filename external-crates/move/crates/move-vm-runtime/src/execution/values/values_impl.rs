@@ -2425,8 +2425,9 @@ impl GlobalValueImpl {
         match self {
             Self::None | Self::Deleted => None,
             Self::Fresh { container } | Self::Cached { container, .. } => {
-                let struct_ @ Value::Struct(_)
-                    = container.take().expect("Could not take global value ") else {
+                let struct_ @ Value::Struct(_) =
+                    container.take().expect("Could not take global value ")
+                else {
                     unreachable!()
                 };
                 Some(struct_)
