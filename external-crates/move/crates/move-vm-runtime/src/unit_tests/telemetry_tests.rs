@@ -2,6 +2,8 @@
 // Copyright (c) The Move Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use std::{sync::Arc, thread};
+
 use crate::{
     dev_utils::{
         compilation_utils::{as_module, compile_units},
@@ -128,7 +130,6 @@ fn basic_telemetry() {
 
     // === After call_bar ===
     let telemetry = adapter.get_telemetry_report();
-    let telemetry = adapter.get_telemetry_report();
     assert_eq!(telemetry.package_cache_count, 1);
     assert_eq!(telemetry.total_arena_size, 3392);
     assert_eq!(telemetry.module_count, 1);
@@ -141,4 +142,70 @@ fn basic_telemetry() {
     assert_eq!(telemetry.execution_count, 2); // 1 -> 2 after call_bar
     assert_eq!(telemetry.interpreter_count, 2); // 1 -> 2 after call_bar
     assert_eq!(telemetry.total_count, 3); // increased by 1
+}
+
+#[test]
+fn parallel_telemetry() {
+    // Create the shared adapter.
+    let adapter = Arc::new(make_adapter());
+    let num_threads = 100;
+    let mut handles = Vec::with_capacity(num_threads);
+
+    // Spawn 10 threads.
+    for i in 0..num_threads {
+        let adapter = adapter.clone();
+        // Each thread will create its own VM.
+        handles.push(thread::spawn(move || {
+            let mut vm = make_vm(&adapter);
+            // Alternate between call_foo and call_bar based on the thread index.
+            if i % 2 == 0 {
+                call_foo(&mut vm).expect("call_foo failed");
+            } else {
+                call_bar(&mut vm).expect("call_bar failed");
+            }
+        }));
+    }
+
+    // Wait for all threads to complete.
+    for handle in handles {
+        handle.join().expect("Thread panicked");
+    }
+
+    // Get the telemetry report after all parallel calls.
+    let telemetry = adapter.get_telemetry_report();
+
+    // In our basic setup, before any calls:
+    //   package_cache_count:   1
+    //   total_arena_size:      3392
+    //   module_count:          1
+    //   function_count:        2
+    //   type_count:            2
+    //   interner_size:         4096
+    //   load_count:            1
+    //   validation_count:      1
+    //   jit_count:             1
+    //   execution_count:       0
+    //   interpreter_count:     0
+    //   total_count:           1
+    //
+    // Each call (via call_foo or call_bar) records a transaction that increments:
+    //   execution_count, interpreter_count, and total_count (+1 each per call).
+    // With 10 calls running in parallel we expect:
+    //   execution_count:   10
+    //   interpreter_count: 10
+    //   total_count:       11 (the initial value 1 plus 10 calls)
+    //
+    // All other fields remain unchanged.
+    assert_eq!(telemetry.package_cache_count, 1);
+    assert_eq!(telemetry.total_arena_size, 3392);
+    assert_eq!(telemetry.module_count, 1);
+    assert_eq!(telemetry.function_count, 2);
+    assert_eq!(telemetry.type_count, 2);
+    assert_eq!(telemetry.interner_size, 4096);
+    assert_eq!(telemetry.load_count, 1);
+    assert_eq!(telemetry.validation_count, 1);
+    assert_eq!(telemetry.jit_count, 1);
+    assert_eq!(telemetry.execution_count, num_threads as u64);   // 10 calls executed
+    assert_eq!(telemetry.interpreter_count, num_threads as u64);   // 10 calls executed
+    assert_eq!(telemetry.total_count, num_threads as u64 + 1);         // initial count (1) + 10 calls
 }
