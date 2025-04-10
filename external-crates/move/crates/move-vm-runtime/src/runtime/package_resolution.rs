@@ -55,7 +55,7 @@ pub(crate) fn resolve_packages(
         }
     }
 
-    if pkgs_to_cache.len() > 0 {
+    if !pkgs_to_cache.is_empty() {
         // Load and cache anything that wasn't already there.
         // NB: packages can be loaded out of order here (e.g., in parallel) if so desired.
         for pkg in load_and_verify_packages(

@@ -37,31 +37,32 @@ pub struct MoveRuntimeTelemetry {
     // -------------------------------------------
     // Telemetry Tracked over Execution
     /// Load Time (ms)
-    pub(crate) total_load_time: u64,
+    pub total_load_time: u64,
     /// Load Count -- number of individual packages loaded
-    pub(crate) load_count: u64,
+    pub load_count: u64,
     /// Validation Time (ms)
-    pub(crate) total_validation_time: u64,
+    pub total_validation_time: u64,
     /// Validation Count -- number of individual packages validated
     /// Note that some validation time is spent on cross-package validation, which is not reflected
     /// in this count.
-    pub(crate) validation_count: u64,
+    pub validation_count: u64,
     /// JIT Time (ms)
-    pub(crate) total_jit_time: u64,
+    pub total_jit_time: u64,
     /// JIT Count -- number of individual packages JITted
-    pub(crate) jit_count: u64,
+    pub jit_count: u64,
     /// Code Execution Time (ms)
-    pub(crate) total_execution_time: u64,
+    pub total_execution_time: u64,
     /// Execution Count -- Number of execution calls
-    pub(crate) execution_count: u64,
+    pub execution_count: u64,
     /// Interpreter Time (ms)
-    pub(crate) total_interpreter_time: u64,
+    pub total_interpreter_time: u64,
     /// Interpreter Count -- Number of interpreter calls
-    pub(crate) interpreter_count: u64,
+    pub interpreter_count: u64,
     /// Total Time (ms)
-    pub(crate) total_time: u64,
-    /// Total Transaction Count
-    pub(crate) total_count: u64,
+    pub total_time: u64,
+    /// Total Count -- Records all interactions with the runtime, including loading for publish; VM
+    /// creation; and invocation.
+    pub total_count: u64,
 }
 
 // -----------------------------------------------
@@ -176,7 +177,7 @@ macro_rules! record_time {
     }};
     ($body:expr) => {{
         let start_time = std::time::Instant::now();
-        let result = crate::try_block!($body);
+        let result = $crate::try_block!($body);
         let duration = start_time.elapsed();
         (result, duration)
     }};
@@ -191,8 +192,8 @@ macro_rules! record_time {
 macro_rules! with_transaction_telemetry {
     ($telemetry:expr; $txn_telemetry:ident => $body:expr) => {{
         let telemetry = $telemetry;
-        let mut $txn_telemetry = crate::runtime::telemetry::TransactionTelemetryContext::new();
-        let result = crate::try_block!($body);
+        let mut $txn_telemetry = $crate::runtime::telemetry::TransactionTelemetryContext::new();
+        let result = $crate::try_block!($body);
         telemetry.record_transaction($txn_telemetry);
         result
     }};
@@ -347,10 +348,6 @@ impl TransactionTelemetryContext {
             interpreter_time: None,
             total_time: Duration::new(0, 0),
         }
-    }
-
-    pub(crate) fn record_packages_loaded(&mut self, packages_loaded: u64) {
-        self.load_count += packages_loaded;
     }
 
     pub(crate) fn record_load_time(&mut self, load_time: Duration, load_count: u64) {
