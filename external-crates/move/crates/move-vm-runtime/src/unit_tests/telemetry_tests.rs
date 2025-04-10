@@ -205,7 +205,8 @@ fn parallel_telemetry_1() {
     let num_calls = 1_000;
     let mut handles = Vec::with_capacity(num_calls);
     // Create the VM once to avoid multiple loads
-    let _vm = make_vm_0(&adapter);
+    let vm = make_vm_0(&adapter);
+    drop(vm);
 
     // Spawn 10 threads.
     for i in 0..num_calls {
@@ -270,9 +271,6 @@ fn parallel_telemetry_2() {
     let num_calls = 20;
     let mut handles = Vec::with_capacity(num_calls);
 
-    // let mut _vm = make_vm_0(&adapter);
-    // let mut _vm = make_vm_1(&adapter);
-
     // Spawn 10 threads.
     for i in 0..num_calls {
         let adapter = adapter.clone();
@@ -280,7 +278,7 @@ fn parallel_telemetry_2() {
         handles.push(thread::spawn(move || {
             let rand = i % 4;
             // Simulate some loads and calls before others
-            thread::sleep(std::time::Duration::from_millis(i as u64 * 200));
+            thread::sleep(std::time::Duration::from_millis(i as u64 * 400));
             match rand {
                 0 => {
                     let mut vm = make_vm_0(&adapter);
