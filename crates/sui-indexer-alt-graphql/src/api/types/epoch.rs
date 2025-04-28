@@ -63,15 +63,6 @@ impl Epoch {
 
 #[Object]
 impl EpochStart {
-    /// The timestamp associated with the first checkpoint in the epoch.
-    async fn start_timestamp(&self) -> Result<Option<DateTime>, RpcError> {
-        let Some(contents) = &self.contents else {
-            return Ok(None);
-        };
-
-        Ok(Some(DateTime::from_ms(contents.start_timestamp_ms)?))
-    }
-
     /// The minimum gas price that a quorum of validators are guaranteed to sign a transaction for in this epoch.
     async fn reference_gas_price(&self) -> Option<BigInt> {
         let Some(contents) = &self.contents else {
@@ -79,6 +70,15 @@ impl EpochStart {
         };
 
         Some(BigInt::from(contents.reference_gas_price))
+    }
+
+    /// The timestamp associated with the first checkpoint in the epoch.
+    async fn start_timestamp(&self) -> Result<Option<DateTime>, RpcError> {
+        let Some(contents) = &self.contents else {
+            return Ok(None);
+        };
+
+        Ok(Some(DateTime::from_ms(contents.start_timestamp_ms)?))
     }
 }
 

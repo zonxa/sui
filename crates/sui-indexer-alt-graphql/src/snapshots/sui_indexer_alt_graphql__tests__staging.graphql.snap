@@ -65,13 +65,13 @@ type Epoch {
 	"""
 	epochId: UInt53!
 	"""
-	The timestamp associated with the first checkpoint in the epoch.
-	"""
-	startTimestamp: DateTime
-	"""
 	The minimum gas price that a quorum of validators are guaranteed to sign a transaction for in this epoch.
 	"""
 	referenceGasPrice: BigInt
+	"""
+	The timestamp associated with the first checkpoint in the epoch.
+	"""
+	startTimestamp: DateTime
 	"""
 	The timestamp associated with the last checkpoint in the epoch (or `null` if the epoch has not finished yet).
 	"""
