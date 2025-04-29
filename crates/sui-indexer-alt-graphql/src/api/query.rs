@@ -83,7 +83,7 @@ impl Query {
 
     /// Fetch packages by their keys.
     ///
-    /// Returns a list of packages that is guaranteed to be the same length as `keys`. If a package in `keys could not be found in the store, its corresponding entry in the result will be `null`. This could be because that address never pointed to a package, or because the package was pruned.
+    /// Returns a list of packages that is guaranteed to be the same length as `keys`. If a package in `keys` could not be found in the store, its corresponding entry in the result will be `null`. This could be because that address never pointed to a package, or because the package was pruned.
     async fn multi_get_packages(
         &self,
         ctx: &Context<'_>,
