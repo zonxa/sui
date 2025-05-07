@@ -148,7 +148,7 @@ impl FlagContent {
         let configs: Vec<StoredFeatureFlag> = conn
             .results(p::kv_feature_flags.filter(p::protocol_version.eq(protocol_version as i64)))
             .await
-            .context("Fail to fetch protocol configs")?;
+            .context("Fail to fetch feature flags")?;
 
         Ok(Self(
             configs

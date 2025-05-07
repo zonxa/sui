@@ -7,9 +7,16 @@
 
 //# run-graphql
 { # Protocol Configs that don't exist (because they haven't been used in the
-  # chain being indexed)
-  protocolConfigs(version: 69) { protocolVersion }
-  protocolConfigs(version: 71) { protocolVersion }
+  # chain being indexed) -- their config lists will be empty.
+  before: protocolConfigs(version: 69) {
+    protocolVersion
+    configs { key value }
+  }
+
+  after: protocolConfigs(version: 71) {
+    protocolVersion
+    configs { key value }
+  }
 }
 
 //# run-graphql

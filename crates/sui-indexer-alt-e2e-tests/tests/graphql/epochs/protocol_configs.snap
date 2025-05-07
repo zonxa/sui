@@ -10,31 +10,22 @@ task 1, line 6:
 //# create-checkpoint
 Checkpoint created: 1
 
-task 2, lines 8-13:
+task 2, lines 8-20:
 //# run-graphql
 Response: {
-  "data": null,
-  "errors": [
-    {
-      "message": "Fields \"version\" conflict because they have differing arguments. Use different aliases on the fields to fetch both if this was intentional.",
-      "locations": [
-        {
-          "line": 3,
-          "column": 3
-        },
-        {
-          "line": 4,
-          "column": 3
-        }
-      ],
-      "extensions": {
-        "code": "GRAPHQL_VALIDATION_FAILED"
-      }
+  "data": {
+    "before": {
+      "protocolVersion": 69,
+      "configs": []
+    },
+    "after": {
+      "protocolVersion": 71,
+      "configs": []
     }
-  ]
+  }
 }
 
-task 3, lines 15-21:
+task 3, lines 22-28:
 //# run-graphql
 Response: {
   "data": {
@@ -51,7 +42,7 @@ Response: {
   }
 }
 
-task 4, lines 23-33:
+task 4, lines 30-40:
 //# run-graphql
 Response: {
   "data": {
