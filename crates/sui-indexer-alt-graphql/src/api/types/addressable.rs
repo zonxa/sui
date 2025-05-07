@@ -10,7 +10,7 @@ use super::{move_package::MovePackage, object::Object};
 
 /// Interface implemented by GraphQL types representing entities that are identified by an address.
 ///
-/// An address can either represent the public key of an account or an object's ID, never both, but it is not possible to know which up-front. If an object is wrapped, it will not be accessible via its address, but it will still be possible to access other objects it owns.
+/// An address uniquely represents either the public key of an account, or an object's ID, but never both. It is not possible to determine which type an address represents up-front. If an object is wrapped, its contents will not be accessible via its address, but it will still be possible to access other objects it owns.
 #[derive(Interface)]
 #[graphql(name = "IAddressable", field(name = "address", ty = "SuiAddress"))]
 pub(crate) enum IAddressable {
