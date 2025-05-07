@@ -204,7 +204,7 @@ impl Object {
             return Ok(None);
         };
 
-        Object::from_version(stored)
+        Object::from_stored_version(stored)
     }
 
     /// Fetch the latest version of the object at the given address as of the checkpoint with
@@ -227,7 +227,7 @@ impl Object {
             return Ok(None);
         };
 
-        Object::from_version(stored)
+        Object::from_stored_version(stored)
     }
 
     /// Load the object at the given ID and version from the store, and return it fully inflated
@@ -259,7 +259,9 @@ impl Object {
 
     /// Construct a GraphQL representation of an `Object` from versioning information. This
     /// representation does not pre-fetch object contents.
-    pub(crate) fn from_version(stored: StoredObjVersion) -> Result<Option<Self>, RpcError<Error>> {
+    pub(crate) fn from_stored_version(
+        stored: StoredObjVersion,
+    ) -> Result<Option<Self>, RpcError<Error>> {
         // Lack of an object digest indicates that the object was deleted or wrapped at this
         // version.
         let Some(digest) = stored.object_digest else {
