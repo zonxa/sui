@@ -76,7 +76,7 @@ pub(crate) struct ObjectImpl<'o>(&'o Object);
 
 /// Identifies a specific version of an object.
 ///
-/// The `address` field must be specified, as well as at most one of `version`, `rootVersion`, or `atCheckpoint`. If neither is provided, the object is fetched at the current checkpoint.
+/// The `address` field must be specified, as well as at most one of `version`, `rootVersion`, or `atCheckpoint`. If none are provided, the object is fetched at the current checkpoint.
 ///
 /// See `Query.object` for more details.
 #[derive(InputObject, Debug, Clone, Eq, PartialEq)]
