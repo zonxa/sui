@@ -181,6 +181,8 @@ impl MovePackage {
         let limits = pagination.limits("MovePackage", "packageVersionsAfter");
         let page = Page::from_params(limits, first, after, last, before)?;
 
+        // Apply any filter that was supplied to the query, but add an additional version
+        // lowerbound constraint.
         let Some(filter) = filter.unwrap_or_default().intersect(VersionFilter {
             after_version: Some(self.super_.version.value().into()),
             ..VersionFilter::default()
@@ -212,6 +214,8 @@ impl MovePackage {
         let limits = pagination.limits("MovePackage", "packageVersionsBefore");
         let page = Page::from_params(limits, first, after, last, before)?;
 
+        // Apply any filter that was supplied to the query, but add an additional version
+        // upperbound constraint.
         let Some(filter) = filter.unwrap_or_default().intersect(VersionFilter {
             before_version: Some(self.super_.version.value().into()),
             ..VersionFilter::default()
