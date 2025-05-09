@@ -515,6 +515,8 @@ impl ObjectImpl<'_> {
         let limits = pagination.limits("IObject", "objectVersionsAfter");
         let page = Page::from_params(limits, first, after, last, before)?;
 
+        // Apply any filter that was supplied to the query, but add an additional version
+        // lowerbound constraint.
         let Some(filter) = filter.unwrap_or_default().intersect(VersionFilter {
             after_version: Some(self.0.version.value().into()),
             ..VersionFilter::default()
@@ -545,6 +547,8 @@ impl ObjectImpl<'_> {
         let limits = pagination.limits("IObject", "objectVersionsBefore");
         let page = Page::from_params(limits, first, after, last, before)?;
 
+        // Apply any filter that was supplied to the query, but add an additional version
+        // upperbound constraint.
         let Some(filter) = filter.unwrap_or_default().intersect(VersionFilter {
             before_version: Some(self.0.version.value().into()),
             ..VersionFilter::default()
