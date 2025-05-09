@@ -118,6 +118,7 @@ impl Loader<CheckpointBoundedOriginalPackageKey> for PgReader {
                     SELECT
                         package_id,
                         package_version,
+                        original_id,
                         is_system_package,
                         serialized_object,
                         cp_sequence_number
@@ -193,6 +194,8 @@ impl Loader<VersionedOriginalPackageKey> for PgReader {
                 CROSS JOIN LATERAL (
                     SELECT
                         package_id,
+                        package_version,
+                        original_id,
                         is_system_package,
                         serialized_object,
                         cp_sequence_number
