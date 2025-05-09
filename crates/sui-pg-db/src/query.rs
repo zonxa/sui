@@ -45,7 +45,7 @@ impl<'f> Query<'f> {
         }
     }
 
-    /// Append `query` at the end of `self.
+    /// Append `query` at the end of `self`.
     pub fn query(mut self, query: Query<'f>) -> Self {
         self.parts.extend(query.parts);
         self
