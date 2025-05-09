@@ -42,6 +42,7 @@ use super::{
 };
 
 /// Interface implemented by versioned on-chain values that are addressable by an ID (also referred to as its address). This includes Move objects and packages.
+#[allow(clippy::duplicated_attributes)]
 #[derive(Interface)]
 #[graphql(
     name = "IObject",
