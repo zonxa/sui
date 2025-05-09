@@ -108,12 +108,7 @@ impl Loader<CheckpointBoundedOriginalPackageKey> for PgReader {
         let query = diesel::sql_query(
             r#"
                 SELECT
-                    v.package_id,
-                    v.package_version,
-                    k.original_id,
-                    v.is_system_package,
-                    v.serialized_object,
-                    v.cp_sequence_number
+                    v.*
                 FROM (
                     SELECT
                         UNNEST($1) original_id,
@@ -189,12 +184,7 @@ impl Loader<VersionedOriginalPackageKey> for PgReader {
         let query = diesel::sql_query(
             r#"
                 SELECT
-                    v.package_id,
-                    k.package_version,
-                    k.original_id,
-                    v.is_system_package,
-                    v.serialized_object,
-                    v.cp_sequence_number
+                    v.*
                 FROM (
                     SELECT
                         UNNEST($1) original_id,
