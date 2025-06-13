@@ -41,7 +41,8 @@ pub struct CompiledPackage {
     /// filename -> doctext
     pub compiled_docs: Option<Vec<(String, String)>>,
     /// The list of published ids for the dependencies of this package
-    pub deps_published_ids: Vec<OriginalID>,
+    // pub deps_published_ids: Vec<OriginalID>,
+    pub dependency_ids: BTreeMap<Symbol, OriginalID>,
     /// The mapping of file hashes to file names and contents
     pub file_map: MappedFiles,
 }
@@ -182,8 +183,8 @@ impl CompiledPackage {
     }
 
     /// Return the published ids of the dependencies of this package
-    pub fn dependency_ids(&self) -> Vec<OriginalID> {
-        self.deps_published_ids.clone()
+    pub fn dependency_ids(&self) -> BTreeMap<Symbol, OriginalID> {
+        self.dependency_ids.clone()
     }
 }
 

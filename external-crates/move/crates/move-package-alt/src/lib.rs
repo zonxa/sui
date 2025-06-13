@@ -14,5 +14,6 @@ pub mod flavor;
 pub mod git;
 pub mod graph;
 pub mod package;
+pub mod package_lock;
 pub mod schema;
 pub mod test_utils;
