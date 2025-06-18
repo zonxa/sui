@@ -32,9 +32,11 @@ friend_declaration ::= "friend" (hex_numeric_literal | identifier) "::" identifi
  * Address identifiers start with any allowed symbol but not a digit.
  * a_0
  * _Argument_1
+ * A
+ * _0
  * _
  */
-address_identifier ::= (lowercase_letter | underscore) (lowercase_letter | digit | underscore)*
+address_identifier ::= (lowercase_letter | uppercase_letter | underscore) (lowercase_letter | uppercase_letter | digit | underscore)*
 
 /* Module identifiers must start with a letter. */
 module_identifier ::= (uppercase_letter | lowercase_letter) (lowercase_letter | digit | underscore)*
