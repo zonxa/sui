@@ -46,7 +46,7 @@ struct_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 const_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 
 /* Local identifiers must start with a lowercase letter. */
-local_identifier ::= lowercase_letter (lowercase_letter | digit | underscore)*
+local_identifier ::= (lowercase_letter | underscore) (lowercase_letter | digit | underscore)*
 
 /* Types */
 
