@@ -5,7 +5,7 @@
 module ::= module_header module_body
 
 /* A module header is a module keyword followed by an address literal or identifier followed by a double colon and an identifier. */
-module_header ::= "module" (hex_numeric_literal | identifier) "::" identifier
+module_header ::= "module" (hex_numeric_literal | identifier) "::" module_identifier
 
 /* A module body is a sequence of module members enclosed in braces or terminated by a semicolon. */
 module_body ::= ("{" (module_member)* "}") | ";" (module_member)*
@@ -16,18 +16,37 @@ module_body ::= ("{" (module_member)* "}") | ";" (module_member)*
 module_member ::= struct_definition | enum_definition | const_definition | fun_definition | friend_declaration
 
 /* A const definition is a const keyword followed by a const identifier, a colon, a built-in type, an equals sign, and a literal. */
-const_definition ::= "const" const_identifier ":" built_in_type "=" literal
+const_definition ::= "const" const_identifier ":" built_in_type "=" literal ";"
+
+/*
+ * A friend declaration is a friend keyword followed by an address literal or identifier followed by a double colon and an identifier.
+ *
+ * friend 0x0::mod;
+ * friend pkg::mod;
+ */
+friend_declaration ::= "friend" (hex_numeric_literal | identifier) "::" identifier ";"
 
 /* Identifiers */
 
-/* Identifier consists of lowercase letters, digits, and underscores in any order and at least one character. */
-identifier ::= lowercase_letter (lowercase_letter | digit | underscore)*
+/*
+ * Address identifiers start with any allowed symbol but not a digit.
+ * a_0
+ * _Argument_1
+ * _
+ */
+address_identifier ::= (lowercase_letter | underscore) (lowercase_letter | digit | underscore)*
+
+/* Module identifiers must start with a letter. */
+module_identifier ::= (uppercase_letter | lowercase_letter) (lowercase_letter | digit | underscore)*
 
 /* Struct identifiers must start with an uppercase letter followed by any number of lowercase letters, digits, and underscores. */
 struct_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 
 /* Const identifiers must start with an uppercase letter followed by any number of lowercase letters, digits, and underscores. */
 const_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
+
+/* Local identifiers must start with a lowercase letter. */
+local_identifier ::= lowercase_letter (lowercase_letter | digit | underscore)*
 
 /* Types */
 
@@ -37,8 +56,11 @@ integer_type ::= "u8" | "u16" | "u32" | "u64" | "u128" | "u256"
 /* An element type is either a built-in type or a custom type. */
 element_type ::= built_in_type | struct_identifier
 
+/* An address type */
+address_type ::= "address"
+
 /* A built-in type is a vector type, integer type, or boolean type. */
-built_in_type ::= integer_type | boolean_type | built_in_vector_type | address_literal | address_type
+built_in_type ::= integer_type | boolean_type | built_in_vector_type | address_type
 
 /* A built-in vector type is a vector of elements. */
 built_in_vector_type ::= "vector" "<" built_in_type ">"
