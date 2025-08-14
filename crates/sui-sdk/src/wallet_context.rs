@@ -436,7 +436,10 @@ impl WalletContext {
         intent: Intent,
     ) -> Result<Signature, anyhow::Error> {
         let keystore = self.get_keystore_by_identity(key_identity)?;
-        let sig = keystore.sign_secure(&data.sender(), data, intent).await?;
+        let address = keystore.get_by_identity(key_identity).map_err(|_| {
+            anyhow!("No address found for the provided key identity: {key_identity}")
+        })?;
+        let sig = keystore.sign_secure(&address, data, intent).await?;
         Ok(sig)
     }
 
