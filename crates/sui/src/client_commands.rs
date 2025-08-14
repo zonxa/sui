@@ -3399,9 +3399,11 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
         Ok(SuiClientCommandResult::ComputeTransactionDigest(tx_data))
     } else {
         let mut signatures = vec![context
-            .config
-            .keystore
-            .sign_secure(&signer, &tx_data, Intent::sui_transaction())
+            .sign_secure(
+                &KeyIdentity::Address(signer),
+                &tx_data,
+                Intent::sui_transaction(),
+            )
             .await?
             .into()];
 
@@ -3409,9 +3411,11 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
             if gas_sponsor != signer {
                 signatures.push(
                     context
-                        .config
-                        .keystore
-                        .sign_secure(&gas_sponsor, &tx_data, Intent::sui_transaction())
+                        .sign_secure(
+                            &KeyIdentity::Address(gas_sponsor),
+                            &tx_data,
+                            Intent::sui_transaction(),
+                        )
                         .await?
                         .into(),
                 );
