@@ -698,7 +698,7 @@ impl KeyToolCommand {
                     .external_keys
                     .as_ref()
                     .map(|k| k.entries())
-                    .unwrap_or_else(|| vec![])
+                    .unwrap_or_default()
                     .into_iter();
 
                 let mut keys: Vec<Key> = context

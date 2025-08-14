@@ -88,16 +88,12 @@ impl ExternalKeysCommand {
 
 impl Display for CommandOutput {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            _ => {
-                let json_obj = json![self];
-                let mut table = json_to_table(&json_obj);
-                let style = tabled::settings::Style::rounded().horizontals([]);
-                table.with(style);
-                table.array_orientation(Orientation::Column);
-                write!(formatter, "{}", table)
-            }
-        }
+        let json_obj = json![self];
+        let mut table = json_to_table(&json_obj);
+        let style = tabled::settings::Style::rounded().horizontals([]);
+        table.with(style);
+        table.array_orientation(Orientation::Column);
+        write!(formatter, "{}", table)
     }
 }
 
