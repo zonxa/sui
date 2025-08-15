@@ -842,12 +842,11 @@ impl SuiClientCommands {
             SuiClientCommands::Addresses { sort_by_alias } => {
                 let active_address = context.active_address()?;
                 let mut addresses: Vec<(String, SuiAddress)> = context
-                    .config
-                    .keystore
                     .addresses_with_alias()
                     .into_iter()
                     .map(|(address, alias)| (alias.alias.to_string(), *address))
                     .collect();
+
                 if sort_by_alias {
                     addresses.sort();
                 }
@@ -1826,7 +1825,7 @@ impl SuiClientCommands {
 
                 if let Some(address) = address {
                     let address = context.get_identity_address(Some(address))?;
-                    if !context.config.keystore.addresses().contains(&address) {
+                    if !context.get_addresses().contains(&address) {
                         return Err(anyhow!("Address {} not managed by wallet", address));
                     }
                     context.config.active_address = Some(address);

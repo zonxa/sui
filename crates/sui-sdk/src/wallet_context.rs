@@ -15,7 +15,7 @@ use sui_json_rpc_types::{
     SuiObjectResponseQuery, SuiTransactionBlockResponse, SuiTransactionBlockResponseOptions,
 };
 use sui_keys::key_identity::KeyIdentity;
-use sui_keys::keystore::{AccountKeystore, Keystore};
+use sui_keys::keystore::{AccountKeystore, Alias, Keystore};
 use sui_types::base_types::{FullObjectRef, ObjectID, ObjectRef, SuiAddress};
 use sui_types::crypto::{Signature, SuiKeyPair};
 
@@ -84,7 +84,23 @@ impl WalletContext {
     }
 
     pub fn get_addresses(&self) -> Vec<SuiAddress> {
-        self.config.keystore.addresses()
+        let mut addresses = self.config.keystore.addresses();
+
+        if let Some(external_keys) = &self.config.external_keys {
+            addresses.extend(external_keys.addresses().into_iter());
+        }
+
+        addresses
+    }
+
+    pub fn addresses_with_alias(&self) -> Vec<(&SuiAddress, &Alias)> {
+        let mut addresses = self.config.keystore.addresses_with_alias();
+
+        if let Some(external_keys) = &self.config.external_keys {
+            addresses.extend(external_keys.addresses_with_alias().into_iter());
+        }
+
+        addresses
     }
 
     pub fn get_env_override(&self) -> Option<String> {
