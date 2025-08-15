@@ -411,12 +411,22 @@ impl WalletContext {
         &self,
         key_identity: &KeyIdentity,
     ) -> Result<&Keystore, anyhow::Error> {
-        if self.config.keystore.get_by_identity(key_identity).is_ok() {
+        if self
+            .config
+            .keystore
+            .get_by_identity(key_identity)
+            .and_then(|address| Ok(self.config.keystore.addresses().contains(&address)))
+            .unwrap_or(false)
+        {
             return Ok(&self.config.keystore);
         }
 
         if let Some(external_keys) = self.config.external_keys.as_ref() {
-            if external_keys.get_by_identity(key_identity).is_ok() {
+            if external_keys
+                .get_by_identity(key_identity)
+                .and_then(|address| Ok(external_keys.addresses().contains(&address)))
+                .unwrap_or(false)
+            {
                 return Ok(external_keys);
             }
         }
