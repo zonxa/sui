@@ -117,8 +117,14 @@ pub async fn start_service(
         "object_by_type".to_string(),
         "$watermark".to_string(),
     ];
-    // Note: We'll need to implement a way to access the database for metrics reporting
-    // For now, we'll just log that metrics reporting is enabled
+
+    // Start periodic metrics reporting for RocksDB column families
+    metrics::start_periodic_metrics_reporting_consistent_store(
+        indexer.store().db().clone(),
+        cf_names.clone(),
+        cancel.child_token(),
+    );
+
     tracing::info!(
         "Periodic metrics reporting enabled for column families: {:?}",
         cf_names

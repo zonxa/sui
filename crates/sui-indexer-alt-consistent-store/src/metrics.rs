@@ -1120,6 +1120,43 @@ pub fn start_periodic_metrics_reporting(
     });
 }
 
+// Periodic metrics reporting functionality for consistent store Db
+pub fn start_periodic_metrics_reporting_consistent_store(
+    db: Arc<crate::db::Db>,
+    cf_names: Vec<String>,
+    cancel_token: tokio_util::sync::CancellationToken,
+) {
+    let metrics = ConsistentStoreMetrics::get();
+
+    tokio::task::spawn(async move {
+        let mut interval =
+            tokio::time::interval(Duration::from_secs(CF_METRICS_REPORT_PERIOD_SECS));
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    for cf_name in &cf_names {
+                        if let Err(e) = tokio::task::spawn_blocking({
+                            let db = db.clone();
+                            let cf_name = cf_name.clone();
+                            let metrics = metrics.clone();
+                            move || {
+                                report_rocksdb_metrics_consistent_store(&db, &cf_name, &metrics);
+                            }
+                        }).await {
+                            error!("Failed to report metrics for cf {}: {}", cf_name, e);
+                        }
+                    }
+                }
+                _ = cancel_token.cancelled() => {
+                    debug!("Periodic metrics reporting cancelled");
+                    break;
+                }
+            }
+        }
+    });
+}
+
 fn report_rocksdb_metrics(
     db: &rocksdb::DBWithThreadMode<rocksdb::MultiThreaded>,
     cf_name: &str,
@@ -1342,8 +1379,336 @@ fn report_rocksdb_metrics(
         .set(get_rocksdb_int_property(db, &cf, properties::BASE_LEVEL).unwrap_or(METRICS_ERROR));
 }
 
+fn report_rocksdb_metrics_consistent_store(
+    db: &crate::db::Db,
+    cf_name: &str,
+    metrics: &Arc<ConsistentStoreMetrics>,
+) {
+    let Some(cf) = db.cf(cf_name) else {
+        warn!("unable to report metrics for cf {cf_name:?} in db",);
+        return;
+    };
+
+    // Access the underlying RocksDB database through the closure method
+    db.with_rocksdb_db(|rocks_db| {
+        // Now we can access RocksDB properties
+        metrics
+            .cf_metrics
+            .rocksdb_total_sst_files_size
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::TOTAL_SST_FILES_SIZE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_total_blob_files_size
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    ROCKSDB_PROPERTY_TOTAL_BLOB_FILES_SIZE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        // Calculate total number of files across all levels
+        let total_num_files: i64 = (0..=6)
+            .map(|level| {
+                get_rocksdb_int_property_consistent_store(rocks_db, &cf, &num_files_at_level(level))
+                    .unwrap_or(METRICS_ERROR)
+            })
+            .sum();
+
+        metrics
+            .cf_metrics
+            .rocksdb_total_num_files
+            .with_label_values(&[cf_name])
+            .set(total_num_files);
+
+        metrics
+            .cf_metrics
+            .rocksdb_num_level0_files
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(rocks_db, &cf, &num_files_at_level(0))
+                    .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_current_size_active_mem_tables
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::CUR_SIZE_ACTIVE_MEM_TABLE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_size_all_mem_tables
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::SIZE_ALL_MEM_TABLES,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_num_snapshots
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(rocks_db, &cf, properties::NUM_SNAPSHOTS)
+                    .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_oldest_snapshot_time
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::OLDEST_SNAPSHOT_TIME,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_actual_delayed_write_rate
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::ACTUAL_DELAYED_WRITE_RATE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_is_write_stopped
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::IS_WRITE_STOPPED,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_block_cache_capacity
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::BLOCK_CACHE_CAPACITY,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_block_cache_usage
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::BLOCK_CACHE_USAGE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_block_cache_pinned_usage
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::BLOCK_CACHE_PINNED_USAGE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_estimate_table_readers_mem
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::ESTIMATE_TABLE_READERS_MEM,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_estimated_num_keys
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::ESTIMATE_NUM_KEYS,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_num_immutable_mem_tables
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::NUM_IMMUTABLE_MEM_TABLE,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_mem_table_flush_pending
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::MEM_TABLE_FLUSH_PENDING,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_compaction_pending
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::COMPACTION_PENDING,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_estimate_pending_compaction_bytes
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::ESTIMATE_PENDING_COMPACTION_BYTES,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_num_running_compactions
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::NUM_RUNNING_COMPACTIONS,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_num_running_flushes
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::NUM_RUNNING_FLUSHES,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_estimate_oldest_key_time
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::ESTIMATE_OLDEST_KEY_TIME,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_background_errors
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(
+                    rocks_db,
+                    &cf,
+                    properties::BACKGROUND_ERRORS,
+                )
+                .unwrap_or(METRICS_ERROR),
+            );
+
+        metrics
+            .cf_metrics
+            .rocksdb_base_level
+            .with_label_values(&[cf_name])
+            .set(
+                get_rocksdb_int_property_consistent_store(rocks_db, &cf, properties::BASE_LEVEL)
+                    .unwrap_or(METRICS_ERROR),
+            );
+    });
+}
+
 fn get_rocksdb_int_property(
     db: &rocksdb::DBWithThreadMode<rocksdb::MultiThreaded>,
+    cf: &impl AsColumnFamilyRef,
+    property_name: &std::ffi::CStr,
+) -> Result<i64, String> {
+    match db.property_int_value_cf(cf, property_name) {
+        Ok(Some(value)) => Ok(value.min(i64::MAX as u64).try_into().unwrap_or_default()),
+        Ok(None) => Ok(0),
+        Err(e) => Err(e.into_string()),
+    }
+}
+
+fn get_rocksdb_int_property_consistent_store(
+    db: &rocksdb::DB,
     cf: &impl AsColumnFamilyRef,
     property_name: &std::ffi::CStr,
 ) -> Result<i64, String> {
