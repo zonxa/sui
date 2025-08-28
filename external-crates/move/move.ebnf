@@ -16,7 +16,7 @@ module_body ::= ("{" (module_member)* "}") | ";" (module_member)*
 module_member ::= struct_definition | enum_definition | const_definition | fun_definition | friend_declaration
 
 /* A const definition is a const keyword followed by a const identifier, a colon, a built-in type, an equals sign, and a literal. */
-const_definition ::= "const" const_identifier ":" built_in_type "=" literal ";"
+const_definition ::= "const" const_identifier ":" built_in_type "=" (literal | const_expression ) ";"
 
 /*
  * A friend declaration is a friend keyword followed by an address literal or identifier followed by a double colon and an identifier.
@@ -45,6 +45,7 @@ module_identifier ::= (uppercase_letter | lowercase_letter) (lowercase_letter | 
 struct_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 
 /* Const identifiers must start with an uppercase letter followed by any number of lowercase letters, digits, and underscores. */
+/* Convention: regular constants are named with `ALL_UPPERCASE`, while for error constants `EPascalCase` is used */
 const_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 
 /* Local identifiers must start with a lowercase letter. */
@@ -89,6 +90,14 @@ address_literal ::= "@" (("0" | non_zero_digit)+) | "@" hex_numeric_literal
 
 /* A literal is a boolean literal, vector literal, numeric literal, hex numeric literal, or address literal. */
 literal ::= boolean_literal | vector_literal | numeric_literal | hex_numeric_literal | address_literal
+
+/* Expressions */
+
+/*
+ * Const expression is a block of simple arithmetic and bitwise operations which
+ * can either use const identifiers or literals.
+ */
+const_expression ::= "{" "}"
 
 /* Utility non-terminals */
 
