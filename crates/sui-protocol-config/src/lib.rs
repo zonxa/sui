@@ -19,7 +19,7 @@ use tracing::{info, warn};
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;
-const MAX_PROTOCOL_VERSION: u64 = 96;
+const MAX_PROTOCOL_VERSION: u64 = 97;
 
 // Record history of protocol version allocations here:
 //
@@ -263,6 +263,7 @@ const MAX_PROTOCOL_VERSION: u64 = 96;
 // Version 96: Enable authority capabilities v2.
 //             Fix bug where MFP transaction shared inputs' debts were not loaded
 //             Create Coin Registry object
+// Version 97: Add constant for event emit auth stream cost.
 
 #[derive(Copy, Clone, Debug, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProtocolVersion(u64);
@@ -1294,6 +1295,7 @@ pub struct ProtocolConfig {
     event_emit_value_size_derivation_cost_per_byte: Option<u64>,
     event_emit_tag_size_derivation_cost_per_byte: Option<u64>,
     event_emit_output_cost_per_byte: Option<u64>,
+    event_emit_auth_stream_cost: Option<u64>,
 
     //  `object` module
     // Cost params for the Move native function `borrow_uid<T: key>(obj: &T): &UID`
@@ -2510,6 +2512,7 @@ impl ProtocolConfig {
             event_emit_value_size_derivation_cost_per_byte: Some(2),
             event_emit_tag_size_derivation_cost_per_byte: Some(5),
             event_emit_output_cost_per_byte: Some(10),
+            event_emit_auth_stream_cost: None,
 
             //  `object` module
             // Cost params for the Move native function `borrow_uid<T: key>(obj: &T): &UID`
@@ -4022,6 +4025,9 @@ impl ProtocolConfig {
                     cfg.feature_flags.use_mfp_txns_in_load_initial_object_debts = true;
                     cfg.feature_flags.cancel_for_failed_dkg_early = true;
                     cfg.feature_flags.enable_coin_registry = true;
+                }
+                97 => {
+                    cfg.event_emit_auth_stream_cost = Some(52);
                 }
                 // Use this template when making changes:
                 //

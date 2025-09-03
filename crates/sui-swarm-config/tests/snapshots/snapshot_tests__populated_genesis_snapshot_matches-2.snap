@@ -3,7 +3,7 @@ source: crates/sui-swarm-config/tests/snapshot_tests.rs
 expression: genesis.sui_system_object().into_genesis_version_for_tooling()
 ---
 epoch: 0
-protocol_version: 96
+protocol_version: 97
 system_state_version: 1
 validators:
   total_stake: 20000000000000000
@@ -240,23 +240,13 @@ validators:
         next_epoch_worker_address: ~
         extra_fields:
           id:
-<<<<<<< HEAD
-            id: "0xdf3e0ac5d80c625aace17eda6c1e26c56c454aa9c73f6a2056126db8351cc781"
+            id: "0x5fe0434d9bdee950d8dc6b1b63eda38a42b92995e67c6b2d8ab29a766bae203e"
           size: 0
       voting_power: 10000
-      operation_cap_id: "0xd5b19e1e4d21534e2db559fdbccaab61979acee6e13e0ff76d55072baff5ee16"
+      operation_cap_id: "0x2763e6c66de55faab0d202a9c672704632d1bf32d7c99832a3504a2ca9014784"
       gas_price: 1000
       staking_pool:
-        id: "0xd4e15c66c5568a9a7e0f3723206ab0f810d1db1523eb6580b7452c51f33d7bc0"
-=======
-            id: "0x77eb9dc62606d3bd486193441641ecafcc5a66ad317495850353de5c0aab8a80"
-          size: 0
-      voting_power: 10000
-      operation_cap_id: "0x461bdc0fdfd5b09edaf343f9c7c37e531be334fdeb619be7f8a641eabb395593"
-      gas_price: 1000
-      staking_pool:
-        id: "0x435453015114e6d796d2e5ce6f0f734f9d6b67347b5a2290d7457eb5a107d597"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+        id: "0x35306cba6bea0a00d0d6f52e7ae2524c80d2df65d2b51802bbe50d0ad7b9352e"
         activation_epoch: 0
         deactivation_epoch: ~
         sui_balance: 20000000000000000
@@ -264,22 +254,14 @@ validators:
           value: 0
         pool_token_balance: 20000000000000000
         exchange_rates:
-<<<<<<< HEAD
-          id: "0x26522bf8d6b334dfe2d73478a9cba13a78efb7a009cfe6a3d2273b02d2ca096b"
-=======
-          id: "0xaae812f1582ef56abc427e2021b01002eadbef42cf82626dd8dabb4eb7e8b892"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+          id: "0x8b9ef87869eb0c02be1d85c55023ea72b928939169d61f32aa90d8a78e22caab"
           size: 1
         pending_stake: 0
         pending_total_sui_withdraw: 0
         pending_pool_token_withdraw: 0
         extra_fields:
           id:
-<<<<<<< HEAD
-            id: "0xef642fc8d5ce3ad37a6c1f85db275997f82bff1acac1dc2b61b862c539311147"
-=======
-            id: "0x6487301730be5225ab90a96a618e2e7b3a0e037d9c286e0f520b78f1622d5002"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+            id: "0x2ec0dbd072163dc826eaf464a5bd5a39992c41fe5d1a2d66aacabb4f1318cc8f"
           size: 0
       commission_rate: 200
       next_epoch_stake: 20000000000000000
@@ -287,49 +269,27 @@ validators:
       next_epoch_commission_rate: 200
       extra_fields:
         id:
-<<<<<<< HEAD
-          id: "0xae7b1ef20a3230a3b6e6fb7e1580688e6be9cfaaae54b528f8e61cfe2437bf3a"
+          id: "0x15515d391fcd0858058e141cafc400354d3bd77bf1f9cd073b2fe186c20c7832"
         size: 0
   pending_active_validators:
     contents:
-      id: "0xd3bee964f1167a649b8dd29186749159b1f0ecfd740c46b7b987abe80d48b6cf"
+      id: "0xa918a81d470b4bc3069f65bd9f76debda4db680d5df93befbd8065bd0bc49f1d"
       size: 0
   pending_removals: []
   staking_pool_mappings:
-    id: "0xff1115c958bb5cd0df92799f2a9810e6536d1eedf2a7728abf85580c236fa5b1"
+    id: "0x7a966c7f77076609c01b04c7d401a22861bfb451474bed45bee6f3feee916171"
     size: 1
   inactive_validators:
-    id: "0xd1f0ace3ab8c38cb4dc8077640b768a9256b9304af595616fa68802dc8ced456"
+    id: "0x813d57256b4515c6d79a28a564f411819838b647956cef965fe80e956863a73e"
     size: 0
   validator_candidates:
-    id: "0xa6c5946e0a1357699c8144f50b0fb29ea97cc8db28ab2b9b85fd1dcce329f9ae"
-=======
-          id: "0x1f8688436992c7d58cf93b68e70b161c67625e361501315068a729a95a35b72d"
-        size: 0
-  pending_active_validators:
-    contents:
-      id: "0x9a998c6250cdcf3c6b1afe5fbaaae59c8334dc01f71fce2e8f17232116bf2646"
-      size: 0
-  pending_removals: []
-  staking_pool_mappings:
-    id: "0x28792967c3ba9487500672135f61dcc67b188a988b3e95d3aae4200ded683712"
-    size: 1
-  inactive_validators:
-    id: "0xc1b0a19cda58dfb8e6ab85568dac0961984406fb75ac8820dc5e4fdf9f24a74d"
-    size: 0
-  validator_candidates:
-    id: "0xa0d73942914851ddf2565d2a8e955e3a1493fd023fc7f4582bf0b0023bafa557"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+    id: "0x1eafb7a89c14d0abe48ff9b698136acb048163f5bef44c5e4e6b289a1bf67e26"
     size: 0
   at_risk_validators:
     contents: []
   extra_fields:
     id:
-<<<<<<< HEAD
-      id: "0xe10a347429370207bbe8dc03b60a199b9438cad459d4df277d8ebbfc4f921f40"
-=======
-      id: "0x7d320827af127c68207b7dcc91dca4e8189925d762ff982de1d2a7c903d6ca43"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+      id: "0x62a6d46b2431319172df748f0a23dcf3f528197cfeaa520b30cfbf71120e0b8f"
     size: 0
 storage_fund:
   total_object_storage_rebates:
@@ -346,11 +306,7 @@ parameters:
   validator_low_stake_grace_period: 7
   extra_fields:
     id:
-<<<<<<< HEAD
-      id: "0xb8e1ea78d55f2af7627796bd00ec5f1d89bbc25d2225b7e349cc855e001cfa1e"
-=======
-      id: "0x2ed5873906b98c73cf689ec91ea32ec7646d8e5401f9ff37e20d4e68c7c9ff31"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+      id: "0xdb86642caf4a14897c00af0abc89a74beb61e02c8ef399734463f08dc5f382e5"
     size: 0
 reference_gas_price: 1000
 validator_report_records:
@@ -364,11 +320,7 @@ stake_subsidy:
   stake_subsidy_decrease_rate: 1000
   extra_fields:
     id:
-<<<<<<< HEAD
-      id: "0xfc5a4782d5bc18f15c345d359c584fe5a13b62c9bb2c767b784bd1b079b6290e"
-=======
-      id: "0xcda75e768e663a87ce4fb2fab5ced6709beff9c4740647640414d98b15033086"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+      id: "0x2688361dfe3fa16c9dbb59768f2a66533c4d328fc1f7f500c1acb29a3bb1bf00"
     size: 0
 safe_mode: false
 safe_mode_storage_rewards:
@@ -380,9 +332,5 @@ safe_mode_non_refundable_storage_fee: 0
 epoch_start_timestamp_ms: 10
 extra_fields:
   id:
-<<<<<<< HEAD
-    id: "0x59bc54f2529b5c60ec9c5cd8ffdccd139069a2437f83b42ebdf91ce4eb0649b1"
-=======
-    id: "0x3b3525eb4a7e76290c079b279e68d6592c8186ca265717d9f54337208bdfe47d"
->>>>>>> 4f089d2b28 (Add minimal plumbing to enable build)
+    id: "0xe9fcd64f877bf205a77ce367f2c562189ca11fdfe3e290d170481bd6fdc68e87"
   size: 0

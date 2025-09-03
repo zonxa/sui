@@ -12562,6 +12562,7 @@ dependencies = [
  "serde",
  "shared-crypto",
  "sui-config",
+ "sui-core",
  "sui-execution",
  "sui-framework",
  "sui-framework-snapshot",
