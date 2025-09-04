@@ -26,6 +26,50 @@ const_definition ::= "const" const_identifier ":" built_in_type "=" (literal | c
  */
 friend_declaration ::= "friend" (hex_numeric_literal | identifier) "::" identifier ";"
 
+/* Module: struct and enum */
+
+/* A struct definition is a public keyword followed by a struct keyword followed by a struct identifier followed by a struct or enum type parameters followed by an optional abilities followed by a struct body. */
+struct_definition ::= "public" "struct" struct_or_enum_identifier struct_or_enum_type_parameters? ("has" abilities)? named_fields | positional_fields ("has" abilities ";")?
+
+/* Regular struct body is enclosed in braces and consists of a sequence of struct members separated by commas. */
+named_fields ::= "{" (struct_field ("," struct_field)*)? "}"
+
+/* Struct field is a field identifier followed by a colon and a type. */
+struct_field ::= field_identifier ":" built_in_type
+
+/* Positional struct body is enclosed in parentheses and consists of a sequence of types separated by commas. */
+positional_fields ::= "(" built_in_type ("," built_in_type)* ")"
+
+/* An enum */
+enum_definition ::= "public" "enum" struct_or_enum_identifier struct_or_enum_type_parameters? ("has" abilities)? enum_variants ("has" abilities ";")?
+
+/* An enum must contain at least one variant. */
+enum_variants ::= "{" enum_variant ("," enum_variant)* "}"
+
+/* An enum variant is an identifier followed by an optional positional fields or optional named fields. */
+enum_variant ::= field_identifier positional_fields | identifier named_fields
+
+/* Module: function */
+
+/* A function definition consists of the function signature followed by the function body for non-native functions. */
+/* A native definition does not feature a body and ends with a semicolon. */
+function_definition ::= function_signature (function_body | ";")
+
+/* A function signature consists of the function identifier, optional type parameters, optional function parameters, and optional return type. */
+function_signature ::= "fun" function_identifier function_type_parameters? function_parameters return_type?
+
+/* Function parameters is a sequence of function parameters separated by commas. */
+function_parameters ::= "(" (function_parameter ("," function_parameter)*)? ")"
+
+/* A function parameter is a mutability, a local variable name, and a type. */
+function_parameter ::= mut? local_identifier ":" type
+
+/* A return type is a single type or a tuple of types with at least one element. */
+return_type ::= ":" ("(" type ("," type)* ")") | type
+
+/* A function body is an expression block. */
+function_body ::= "{" "}"
+
 /* Identifiers */
 
 /*
@@ -42,7 +86,7 @@ address_identifier ::= (lowercase_letter | uppercase_letter | underscore) (lower
 module_identifier ::= (uppercase_letter | lowercase_letter) (lowercase_letter | digit | underscore)*
 
 /* Struct identifiers must start with an uppercase letter followed by any number of lowercase letters, digits, and underscores. */
-struct_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
+struct_or_enum_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 
 /* Const identifiers must start with an uppercase letter followed by any number of lowercase letters, digits, and underscores. */
 /* Convention: regular constants are named with `ALL_UPPERCASE`, while for error constants `EPascalCase` is used */
@@ -51,13 +95,37 @@ const_identifier ::= uppercase_letter (lowercase_letter | digit | underscore)*
 /* Local identifiers must start with a lowercase letter. */
 local_identifier ::= (lowercase_letter | underscore) (lowercase_letter | digit | underscore)*
 
+/* Field identifiers start with any allowed symbol but not a digit. */
+field_identifier ::= (lowercase_letter | uppercase_letter | underscore) (lowercase_letter | uppercase_letter | digit | underscore)*
+
+/* TODO: Function identifiers must start with a lowercase letter. */
+function_identifier ::= field_identifier
+
+/* Generics and Type Parameters */
+
+/* A type parameter is a sequence of type parameters with optional ability constraints. */
+type_parameter ::= identifier (":" ability_constraint)?
+
+/* Phantom type parameter is a parameter prefixed with `phantom`, these type parameters can only be used in type definitions. */
+/* Type parameter must be declared phantom if it is not used in any struct fields. */
+phantom_type_parameter ::= "phantom" type_parameter
+
+/* Generalization of type parameters for structs and enums. */
+struct_or_enum_type_parameter ::= type_parameter | phantom_type_parameter
+
+/* Generalization of type parameters for structs and enums. */
+struct_or_enum_type_parameters ::= "<" (struct_or_enum_type_parameter ("," struct_or_enum_type_parameter)*)? ">"
+
+/* A type parameter list is a sequence of type parameters separated by commas. */
+function_type_parameters ::= "<" (type_parameter ("," type_parameter)*)? ">"
+
 /* Types */
 
 /* Currently, only unsigned integers are supported. */
 integer_type ::= "u8" | "u16" | "u32" | "u64" | "u128" | "u256"
 
 /* An element type is either a built-in type or a custom type. */
-element_type ::= built_in_type | struct_identifier
+element_type ::= built_in_type | struct_or_enum_identifier
 
 /* An address type */
 address_type ::= "address"
@@ -70,6 +138,9 @@ built_in_vector_type ::= "vector" "<" built_in_type ">"
 
 /* A vector type is a vector of elements. */
 vector_type ::= "vector" "<" element_type ">"
+
+/* A generalization of types: includes all built-in types, vector types, and struct or enum identifiers. */
+type ::= built_in_type | vector_type | struct_or_enum_identifier
 
 /* Literals */
 
@@ -98,6 +169,20 @@ literal ::= boolean_literal | vector_literal | numeric_literal | hex_numeric_lit
  * can either use const identifiers or literals.
  */
 const_expression ::= "{" "}"
+
+/* Other */
+
+/* Move type ability */
+ability ::= "key" | "store" | "copy" | "drop"
+
+/* Abilities are a sequence of abilities separated by commas. Used in struct and enum declarations. */
+abilities ::= ability ("," ability)*
+
+/* Ability constraint is a sequence of abilities separated by plus signs. Used in type parameters. */
+ability_constraint ::= ability ("+" ability)*
+
+/* A mutability is marked with the mut keyword. */
+mut ::= "mut"
 
 /* Utility non-terminals */
 
