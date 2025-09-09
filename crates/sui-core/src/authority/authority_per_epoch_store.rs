@@ -2443,6 +2443,8 @@ impl AuthorityPerEpochStore {
             && cert.transaction_data().uses_randomness()
         {
             // TODO(commit-handler-rewrite): propogate original deferred_from_round when re-deferring
+            // DONE(commit-handler-rewrite): propogate original deferred_from_round when re-deferring
+            // (TODO and DONE are in same place because this code is shared between old and new commit handler)
             let deferred_from_round = previously_deferred_tx_digests
                 .get(cert.digest())
                 .map(|previous_key| previous_key.deferred_from_round())
@@ -2570,6 +2572,13 @@ impl AuthorityPerEpochStore {
     pub fn deferred_transactions_empty(&self) -> bool {
         self.consensus_output_cache
             .deferred_transactions
+            .lock()
+            .is_empty()
+    }
+
+    pub fn deferred_transactions_empty_v2(&self) -> bool {
+        self.consensus_output_cache
+            .deferred_transactions_v2
             .lock()
             .is_empty()
     }
@@ -3310,8 +3319,7 @@ impl AuthorityPerEpochStore {
 
         let mut output = ConsensusCommitOutput::new(consensus_commit_info.round);
 
-        // TODO(commit-handler-rewrite): Load transactions deferred from previous commits, compute
-        // the digest set of all such transactions.
+        // TODO(commit-handler-rewrite): Load transactions deferred from previous commits, compute the digest set of all such transactions.
         let deferred_txs: Vec<(DeferralKey, Vec<VerifiedSequencedConsensusTransaction>)> = self
             .load_deferred_transactions_for_up_to_consensus_round(
                 &mut output,
@@ -4361,7 +4369,6 @@ impl AuthorityPerEpochStore {
                 ..
             }) => {
                 // TODO(commit-handler-rewrite): [ssm] can ignore capabilities v1 in rewrite
-                // TODO(commit-handler-rewrite): [ssm] ignore capability notifications if !should_accept_consensus_certs()
                 let authority = capabilities.authority;
                 if self
                     .get_reconfig_state_read_lock_guard()
@@ -4617,7 +4624,6 @@ impl AuthorityPerEpochStore {
 
         let fail_dkg_early = self.protocol_config().cancel_for_failed_dkg_early();
 
-        // TODO(commit-handler-rewrite): cancel randomness-using txns if DKG failed
         if fail_dkg_early
             && dkg_failed
             && self.randomness_state_enabled()
