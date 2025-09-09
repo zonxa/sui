@@ -8,6 +8,7 @@ use sui_rpc::proto::sui::rpc::v2beta2::{
     BatchGetTransactionsRequest, BatchGetTransactionsResponse, GetCheckpointRequest,
     GetCheckpointResponse, GetEpochRequest, GetEpochResponse, GetObjectRequest, GetObjectResponse,
     GetServiceInfoRequest, GetServiceInfoResponse, GetTransactionRequest, GetTransactionResponse,
+    QueryAuthenticatedEventsRequest, QueryAuthenticatedEventsResponse,
 };
 use sui_rpc_api::proto::timestamp_ms_to_proto;
 use sui_rpc_api::{CheckpointNotFoundError, RpcError, ServerVersion};
@@ -135,6 +136,14 @@ impl LedgerService for KvRpcServer {
         .await
         .map(tonic::Response::new)
         .map_err(Into::into)
+    }
+
+    async fn query_authenticated_events(
+        &self,
+        _request: tonic::Request<QueryAuthenticatedEventsRequest>,
+    ) -> Result<tonic::Response<QueryAuthenticatedEventsResponse>, tonic::Status> {
+        // Not supported by KV RPC server in MVP.
+        Ok(tonic::Response::new(QueryAuthenticatedEventsResponse::default()))
     }
 }
 
