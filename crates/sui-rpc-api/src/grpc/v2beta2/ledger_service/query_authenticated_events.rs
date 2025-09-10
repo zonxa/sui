@@ -1,6 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::ErrorReason;
 use crate::RpcError;
 use crate::RpcService;
 use bytes::Bytes;
@@ -13,6 +14,7 @@ use sui_rpc::proto::sui::rpc::v2beta2::{
     AuthenticatedEvent, EventStreamHead, Proof, QueryAuthenticatedEventsRequest,
     QueryAuthenticatedEventsResponse, Event,
 };
+use sui_rpc::proto::google::rpc::bad_request::FieldViolation;
 use sui_types::effects::TransactionEffectsAPI;
 
 fn load_event_stream_head(
@@ -82,27 +84,32 @@ pub fn query_authenticated_events(
     _service: &RpcService,
     request: QueryAuthenticatedEventsRequest,
 ) -> Result<QueryAuthenticatedEventsResponse, RpcError> {
-    let stream_id = request.stream_id.unwrap_or_default();
+    let stream_id = request
+        .stream_id
+        .ok_or_else(|| {
+            FieldViolation::new("stream_id")
+                .with_description("missing stream_id")
+                .with_reason(ErrorReason::FieldMissing)
+        })?;
+
     let start = request.start_checkpoint.unwrap_or(0);
     let end = request.end_checkpoint.unwrap_or(u64::MAX);
 
-    if stream_id.is_empty() {
-        return Ok(QueryAuthenticatedEventsResponse::default());
-    }
     if end < start {
-        return Ok(QueryAuthenticatedEventsResponse::default());
+        return Err(FieldViolation::new("end_checkpoint")
+            .with_description("end_checkpoint must be >= start_checkpoint")
+            .with_reason(ErrorReason::FieldInvalid)
+            .into());
     }
 
     let reader = _service.reader.inner();
-    let indexes = match reader.indexes() {
-        Some(ix) => ix,
-        None => return Ok(QueryAuthenticatedEventsResponse::default()),
-    };
+    let indexes = reader.indexes().ok_or_else(RpcError::not_found)?;
 
-    let stream_addr = match sui_types::base_types::SuiAddress::from_str(&stream_id) {
-        Ok(addr) => addr,
-        Err(_) => return Ok(QueryAuthenticatedEventsResponse::default()),
-    };
+    let stream_addr = sui_types::base_types::SuiAddress::from_str(&stream_id).map_err(|e| {
+        FieldViolation::new("stream_id")
+            .with_description(format!("invalid stream_id: {e}"))
+            .with_reason(ErrorReason::FieldInvalid)
+    })?;
 
     fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
         let mut out = Event::default();
