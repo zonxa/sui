@@ -225,33 +225,6 @@ pub fn stream_id_from_accumulator_event(ev: &AccumulatorEvent) -> Option<SuiAddr
     None
 }
 
-/// StructTag for `sui::accumulator_settlement::EventStreamHead`.
-pub fn event_stream_head_struct_tag() -> StructTag {
-    StructTag {
-        address: SUI_FRAMEWORK_ADDRESS,
-        module: ACCUMULATOR_SETTLEMENT_MODULE.to_owned(),
-        name: ACCUMULATOR_SETTLEMENT_EVENT_STREAM_HEAD.to_owned(),
-        type_params: vec![],
-    }
-}
-
-/// Dynamic field key type tag for `AccumulatorKey<EventStreamHead>`.
-pub fn event_stream_head_key_type_tag() -> TypeTag {
-    AccumulatorKey::get_type_tag(&[TypeTag::Struct(Box::new(event_stream_head_struct_tag()))])
-}
-
-/// Unbounded dynamic field object id for EventStreamHead for the given stream address.
-pub fn event_stream_head_dynamic_field_id(owner: SuiAddress) -> Option<ObjectID> {
-    DynamicFieldKey(
-        SUI_ACCUMULATOR_ROOT_OBJECT_ID,
-        AccumulatorKey { owner },
-        event_stream_head_key_type_tag(),
-    )
-    .into_unbounded_id()
-    .ok()
-    .map(|id| id.as_object_id())
-}
-
 impl TryFrom<&MoveObject> for AccumulatorValue {
     type Error = SuiError;
     fn try_from(value: &MoveObject) -> Result<Self, Self::Error> {

@@ -5,14 +5,15 @@ use crate::RpcError;
 use crate::RpcService;
 use bytes::Bytes;
 use move_core_types::language_storage::{StructTag, TypeTag};
+use sui_types::MoveTypeTagTraitGeneric;
+use sui_types::accumulator_root as ar;
 use std::str::FromStr;
 use std::sync::Arc;
 use sui_rpc::proto::sui::rpc::v2beta2::{
     AuthenticatedEvent, EventStreamHead, Proof, QueryAuthenticatedEventsRequest,
-    QueryAuthenticatedEventsResponse,
+    QueryAuthenticatedEventsResponse, Event,
 };
 use sui_types::effects::TransactionEffectsAPI;
-use sui_types::MoveTypeTagTraitGeneric;
 
 fn load_event_stream_head(
     reader: &Arc<dyn sui_types::storage::RpcStateReader>,
@@ -26,17 +27,31 @@ fn load_event_stream_head(
         num_events: u64,
     }
     let stream_address = sui_types::base_types::SuiAddress::from_str(stream_id).ok()?;
-    let key_type_tag = sui_types::accumulator_root::event_stream_head_key_type_tag();
-    let id = sui_types::accumulator_root::event_stream_head_dynamic_field_id(stream_address)?;
+    let event_stream_head_object_id = {
+        let module = ar::ACCUMULATOR_SETTLEMENT_MODULE.to_owned();
+        let name = ar::ACCUMULATOR_SETTLEMENT_EVENT_STREAM_HEAD.to_owned();
+        let tag = StructTag {
+            address: sui_types::SUI_FRAMEWORK_ADDRESS,
+            module,
+            name,
+            type_params: vec![],
+        };
+        let key_type_tag = ar::AccumulatorKey::get_type_tag(&[TypeTag::Struct(Box::new(tag))]);
+        let df_key = sui_types::dynamic_field::DynamicFieldKey(
+            sui_types::SUI_ACCUMULATOR_ROOT_OBJECT_ID,
+            ar::AccumulatorKey { owner: stream_address },
+            key_type_tag,
+        );
+        df_key.into_unbounded_id().ok()?.as_object_id()
+    };
 
-    // Find the dynamic field object's version written in `at_checkpoint` only.
     let contents = reader.get_checkpoint_contents_by_sequence_number(at_checkpoint)?;
     let mut version: Option<sui_types::base_types::SequenceNumber> = None;
     for exec in contents.iter() {
         let tx = exec.transaction;
         if let Some(effects) = reader.get_transaction_effects(&tx) {
             for (obj_id, ver, _dig) in effects.written() {
-                if obj_id == id {
+                if obj_id == event_stream_head_object_id {
                     version = Some(ver);
                     break;
                 }
@@ -48,7 +63,7 @@ fn load_event_stream_head(
     }
 
     let version = version?;
-    let obj = reader.get_object_by_key(&id, version)?;
+    let obj = reader.get_object_by_key(&event_stream_head_object_id, version)?;
     let mo = obj.data.try_as_move()?;
     let field = mo.to_rust::<sui_types::dynamic_field::Field<
         sui_types::accumulator_root::AccumulatorKey,
@@ -89,30 +104,45 @@ pub fn query_authenticated_events(
         Err(_) => return Ok(QueryAuthenticatedEventsResponse::default()),
     };
 
-    let mut events = Vec::new();
-    let mut last_checkpoint_with_events: Option<u64> = None;
-    let mut iter = indexes
-        .authenticated_event_iter(stream_addr, start, end)
-        .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
-    while let Some(item) = iter
-        .next()
-        .transpose()
-        .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?
-    {
-        let (cp, txd, idx, bytes) = item;
-        last_checkpoint_with_events = Some(cp);
+    fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
+        let mut out = Event::default();
+        out.package_id = Some(ev.package_id.to_canonical_string(true));
+        out.module = Some(ev.transaction_module.to_string());
+        out.sender = Some(ev.sender.to_string());
+        out.event_type = Some(ev.type_.to_canonical_string(true));
+        let mut bcs = sui_rpc::proto::sui::rpc::v2beta2::Bcs::default();
+        bcs.value = Some(Bytes::from(ev.contents.clone()));
+        out.contents = Some(bcs);
+        out
+    }
+
+    fn to_authenticated_event(
+        stream_id: &str,
+        cp: u64,
+        txd: &sui_types::base_types::TransactionDigest,
+        idx: u32,
+        ev: &sui_types::event::Event,
+    ) -> AuthenticatedEvent {
         let mut ae = AuthenticatedEvent::default();
         ae.checkpoint = Some(cp);
         ae.tx_digest = Some(txd.to_string());
         ae.event_index = Some(idx);
-        ae.move_event = Some(Bytes::from(bytes));
-        ae.stream_id = Some(stream_id.clone());
-        events.push(ae);
+        ae.event = Some(to_grpc_event(ev));
+        ae.stream_id = Some(stream_id.to_string());
+        ae
     }
 
-    // Load EventStreamHead from the accumulator dynamic field, if available.
+    let iter = indexes
+        .authenticated_event_iter(stream_addr, start, end)
+        .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
+    let events: Vec<AuthenticatedEvent> = iter
+        .map(|res| res.map(|(cp, txd, idx, ev)| to_authenticated_event(&stream_id, cp, &txd, idx, &ev)))
+        .collect::<Result<_, _>>()
+        .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
+    let last_checkpoint_with_events = events.last().and_then(|e| e.checkpoint);
+
     let event_stream_head = last_checkpoint_with_events
-        .and_then(|cp| load_event_stream_head(reader, &stream_id, cp));
+        .and_then(|last_checkpoint| load_event_stream_head(reader, &stream_id, last_checkpoint));
     let mut resp = QueryAuthenticatedEventsResponse::default();
     resp.events = events;
     resp.proof = event_stream_head.map(|esh| {

@@ -615,13 +615,13 @@ pub trait RpcIndexes: Send + Sync {
     ) -> Result<PackageVersionsIterator<'_>>;
 
     /// Iterate authenticated events for a stream within an inclusive checkpoint range.
-    /// Each item yields (checkpoint_seq, tx_digest, event_index, move_event_bytes)
+    /// Each item yields (checkpoint_seq, tx_digest, event_index, Event)
     fn authenticated_event_iter(
         &self,
         stream_id: SuiAddress,
         start_checkpoint: u64,
         end_checkpoint: u64,
-    ) -> Result<Box<dyn Iterator<Item = Result<(u64, TransactionDigest, u32, Vec<u8>), TypedStoreError>> + '_>>;
+    ) -> Result<Box<dyn Iterator<Item = Result<(u64, TransactionDigest, u32, crate::event::Event), TypedStoreError>> + '_>>;
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

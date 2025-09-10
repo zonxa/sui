@@ -7,7 +7,6 @@ use crate::checkpoints::CheckpointStore;
 use crate::par_index_live_object_set::LiveObjectIndexer;
 use crate::par_index_live_object_set::ParMakeLiveObjectIndexer;
 use itertools::Itertools;
-use move_core_types::ident_str;
 use move_core_types::language_storage::{StructTag, TypeTag};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -29,13 +28,13 @@ use sui_types::coin::Coin;
 use sui_types::committee::EpochId;
 use sui_types::digests::TransactionDigest;
 use sui_types::full_checkpoint_content::CheckpointData;
+use sui_types::event::Event;
 use sui_types::layout_resolver::LayoutResolver;
 use sui_types::messages_checkpoint::CheckpointContents;
 use sui_types::messages_checkpoint::CheckpointSequenceNumber;
 use sui_types::object::Data;
 use sui_types::object::Object;
 use sui_types::object::Owner;
-use sui_types::SUI_FRAMEWORK_ADDRESS;
 use sui_types::accumulator_event::AccumulatorEvent;
 use sui_types::storage::error::Error as StorageError;
 use sui_types::storage::BackingPackageStore;
@@ -339,9 +338,9 @@ struct IndexStoreTables {
     package_version: DBMap<PackageVersionKey, PackageVersionInfo>,
     
     /// Authenticated events index by (stream_id, checkpoint_seq, tx_digest, event_index)
-    /// Value is the raw Move event bytes
+    /// Value is the full sui_types::event::Event
     #[default_options_override_fn = "default_table_options"]
-    events_by_stream: DBMap<EventIndexKey, Vec<u8>>,
+    events_by_stream: DBMap<EventIndexKey, Event>,
     // NOTE: Authors and Reviewers before adding any new tables ensure that they are either:
     // - bounded in size by the live object set
     // - are prune-able and have corresponding logic in the `prune` function
@@ -621,7 +620,7 @@ impl IndexStoreTables {
     ) -> Result<(), StorageError> {
         use sui_types::effects::{AccumulatorValue, TransactionEffectsAPI};
 
-        let mut entries: Vec<(EventIndexKey, Vec<u8>)> = Vec::new();
+        let mut entries: Vec<(EventIndexKey, Event)> = Vec::new();
         let cp = checkpoint.checkpoint_summary.sequence_number;
 
         for tx in &checkpoint.transactions {
@@ -654,7 +653,7 @@ impl IndexStoreTables {
                         tx_digest: *tx.transaction.digest(),
                         event_index: idx as u32,
                     };
-                    entries.push((key, ev.contents.clone()));
+                    entries.push((key, ev.clone()));
                 }
             }
         }
@@ -875,7 +874,7 @@ impl IndexStoreTables {
         start: u64,
         end: u64,
     ) -> Result<
-        impl Iterator<Item = Result<(EventIndexKey, Vec<u8>), TypedStoreError>> + '_,
+        impl Iterator<Item = Result<(EventIndexKey, Event), TypedStoreError>> + '_,
         TypedStoreError,
     > {
         let lower = EventIndexKey {
@@ -1399,7 +1398,7 @@ impl RpcIndexStore {
         start: u64,
         end: u64,
     ) -> Result<
-        impl Iterator<Item = Result<(EventIndexKey, Vec<u8>), TypedStoreError>> + '_,
+        impl Iterator<Item = Result<(EventIndexKey, Event), TypedStoreError>> + '_,
         TypedStoreError,
     > {
         self.tables.event_iter(stream_id, start, end)

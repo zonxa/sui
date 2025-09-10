@@ -622,7 +622,7 @@ impl RpcIndexes for RpcIndexStore {
         start_checkpoint: u64,
         end_checkpoint: u64,
     ) -> sui_types::storage::error::Result<
-        Box<dyn Iterator<Item = Result<(u64, TransactionDigest, u32, Vec<u8>), TypedStoreError>> + '_>,
+        Box<dyn Iterator<Item = Result<(u64, TransactionDigest, u32, sui_types::event::Event), TypedStoreError>> + '_>,
     > {
         let iter = self
             .event_iter(stream_id, start_checkpoint, end_checkpoint)?
