@@ -115,6 +115,10 @@ impl RpcService {
                 sui_rpc::proto::sui::rpc::v2beta2::ledger_service_server::LedgerServiceServer::new(
                     self.clone(),
                 );
+            let event_service2 =
+                sui_rpc::proto::sui::rpc::v2beta2::event_service_server::EventServiceServer::new(
+                    self.clone(),
+                );
             let transaction_execution_service2 = sui_rpc::proto::sui::rpc::v2beta2::transaction_execution_service_server::TransactionExecutionServiceServer::new(self.clone());
             let live_data_service2 =
                 sui_rpc::proto::sui::rpc::v2beta2::live_data_service_server::LiveDataServiceServer::new(
@@ -159,6 +163,7 @@ impl RpcService {
 
             for service_name in [
                 service_name(&ledger_service2),
+                service_name(&event_service2),
                 service_name(&transaction_execution_service2),
                 service_name(&live_data_service2),
                 service_name(&signature_verification_service2),
@@ -173,6 +178,7 @@ impl RpcService {
 
             let mut services = grpc::Services::new()
                 .add_service(ledger_service2)
+                .add_service(event_service2)
                 .add_service(transaction_execution_service2)
                 .add_service(live_data_service2)
                 .add_service(signature_verification_service2)

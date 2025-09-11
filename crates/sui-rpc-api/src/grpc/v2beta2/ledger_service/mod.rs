@@ -17,11 +17,8 @@ use sui_rpc::proto::sui::rpc::v2beta2::GetServiceInfoRequest;
 use sui_rpc::proto::sui::rpc::v2beta2::GetServiceInfoResponse;
 use sui_rpc::proto::sui::rpc::v2beta2::GetTransactionRequest;
 use sui_rpc::proto::sui::rpc::v2beta2::GetTransactionResponse;
-use sui_rpc::proto::sui::rpc::v2beta2::QueryAuthenticatedEventsRequest;
-use sui_rpc::proto::sui::rpc::v2beta2::QueryAuthenticatedEventsResponse;
 
 pub(crate) mod get_checkpoint;
-mod query_authenticated_events;
 mod get_epoch;
 mod get_object;
 mod get_service_info;
@@ -91,15 +88,6 @@ impl LedgerService for RpcService {
         request: tonic::Request<GetEpochRequest>,
     ) -> Result<tonic::Response<GetEpochResponse>, tonic::Status> {
         get_epoch::get_epoch(self, request.into_inner())
-            .map(tonic::Response::new)
-            .map_err(Into::into)
-    }
-
-    async fn query_authenticated_events(
-        &self,
-        request: tonic::Request<QueryAuthenticatedEventsRequest>,
-    ) -> Result<tonic::Response<QueryAuthenticatedEventsResponse>, tonic::Status> {
-        query_authenticated_events::query_authenticated_events(self, request.into_inner())
             .map(tonic::Response::new)
             .map_err(Into::into)
     }

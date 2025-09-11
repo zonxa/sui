@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod ledger_service;
+pub mod query_authenticated_events;
 mod live_data_service;
 mod move_package_service;
 mod name_service;
@@ -9,6 +10,7 @@ mod signature_verification_service;
 mod subscription_service;
 mod transaction_execution_service;
 pub use ledger_service::protocol_config_to_proto;
+pub mod event_service;
 
 fn render_json(
     service: &crate::RpcService,

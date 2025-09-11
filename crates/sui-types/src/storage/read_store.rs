@@ -614,6 +614,11 @@ pub trait RpcIndexes: Send + Sync {
         cursor: Option<u64>,
     ) -> Result<PackageVersionsIterator<'_>>;
 
+    /// Return the highest checkpoint sequence number that has been indexed.
+    fn get_highest_indexed_checkpoint_seq_number(
+        &self,
+    ) -> Result<Option<CheckpointSequenceNumber>>;
+
     /// Iterate authenticated events for a stream within an inclusive checkpoint range.
     /// Each item yields (checkpoint_seq, tx_digest, event_index, Event)
     fn authenticated_event_iter(

@@ -616,6 +616,13 @@ impl RpcIndexes for RpcIndexStore {
         )
     }
 
+    fn get_highest_indexed_checkpoint_seq_number(
+        &self,
+    ) -> sui_types::storage::error::Result<Option<CheckpointSequenceNumber>> {
+        self.get_highest_indexed_checkpoint_seq_number()
+            .map_err(Into::into)
+    }
+
     fn authenticated_event_iter(
         &self,
         stream_id: SuiAddress,

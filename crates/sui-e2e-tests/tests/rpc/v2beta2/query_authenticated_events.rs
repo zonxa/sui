@@ -3,7 +3,7 @@
 
 use sui_macros::sim_test;
 use sui_protocol_config::ProtocolConfig;
-use sui_rpc::proto::sui::rpc::v2beta2::ledger_service_client::LedgerServiceClient;
+use sui_rpc::proto::sui::rpc::v2beta2::event_service_client::EventServiceClient;
 use sui_rpc::proto::sui::rpc::v2beta2::{Event, QueryAuthenticatedEventsRequest};
 use sui_keys::keystore::AccountKeystore;
 use serde::{Deserialize, Serialize};
@@ -65,14 +65,14 @@ async fn query_authenticated_events_end_to_end() {
         test_cluster.sign_and_execute_transaction(&tx_data_i).await;
     }
 
-    let mut client = LedgerServiceClient::connect(test_cluster.rpc_url().to_owned())
+    let mut client = EventServiceClient::connect(test_cluster.rpc_url().to_owned())
         .await
         .unwrap();
 
     let mut req = QueryAuthenticatedEventsRequest::default();
     req.stream_id = Some(package_id.to_string());
     req.start_checkpoint = Some(0);
-    req.end_checkpoint = Some(u64::MAX);
+    req.limit = Some(1000);
     let resp = client
         .query_authenticated_events(req)
         .await

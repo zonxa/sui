@@ -1403,6 +1403,13 @@ impl RpcIndexStore {
     > {
         self.tables.event_iter(stream_id, start, end)
     }
+
+    /// Returns the highest checkpoint sequence number that has been indexed.
+    pub fn get_highest_indexed_checkpoint_seq_number(
+        &self,
+    ) -> Result<Option<CheckpointSequenceNumber>, TypedStoreError> {
+        self.tables.watermark.get(&Watermark::Indexed)
+    }
 }
 
 fn should_index_dynamic_field(object: &Object) -> bool {

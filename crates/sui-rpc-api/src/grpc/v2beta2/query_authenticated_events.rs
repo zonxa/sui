@@ -17,7 +17,36 @@ use sui_rpc::proto::sui::rpc::v2beta2::{
 use sui_rpc::proto::google::rpc::bad_request::FieldViolation;
 use sui_types::effects::TransactionEffectsAPI;
 
-fn load_event_stream_head(
+
+fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
+    let mut out = Event::default();
+    out.package_id = Some(ev.package_id.to_canonical_string(true));
+    out.module = Some(ev.transaction_module.to_string());
+    out.sender = Some(ev.sender.to_string());
+    out.event_type = Some(ev.type_.to_canonical_string(true));
+    let mut bcs = sui_rpc::proto::sui::rpc::v2beta2::Bcs::default();
+    bcs.value = Some(Bytes::from(ev.contents.clone()));
+    out.contents = Some(bcs);
+    out
+}
+
+fn to_authenticated_event(
+    stream_id: &str,
+    cp: u64,
+    txd: &sui_types::base_types::TransactionDigest,
+    idx: u32,
+    ev: &sui_types::event::Event,
+) -> AuthenticatedEvent {
+    let mut ae = AuthenticatedEvent::default();
+    ae.checkpoint = Some(cp);
+    ae.tx_digest = Some(txd.to_string());
+    ae.event_index = Some(idx);
+    ae.event = Some(to_grpc_event(ev));
+    ae.stream_id = Some(stream_id.to_string());
+    ae
+}
+
+pub(crate) fn load_event_stream_head(
     reader: &Arc<dyn sui_types::storage::RpcStateReader>,
     stream_id: &str,
     at_checkpoint: u64,
@@ -93,14 +122,18 @@ pub fn query_authenticated_events(
         })?;
 
     let start = request.start_checkpoint.unwrap_or(0);
-    let end = request.end_checkpoint.unwrap_or(u64::MAX);
-
-    if end < start {
-        return Err(FieldViolation::new("end_checkpoint")
-            .with_description("end_checkpoint must be >= start_checkpoint")
-            .with_reason(ErrorReason::FieldInvalid)
-            .into());
+    if let Some(lim) = request.limit {
+        if lim > 1000 {
+            return Err(
+                FieldViolation::new("limit")
+                    .with_description("limit must be <= 1000")
+                    .with_reason(ErrorReason::FieldInvalid)
+                    .into(),
+            );
+        }
     }
+    let limit = request.limit.unwrap_or(1000);
+    let end = start.saturating_add(limit.saturating_sub(1));
 
     let reader = _service.reader.inner();
     let indexes = reader.indexes().ok_or_else(RpcError::not_found)?;
@@ -111,36 +144,16 @@ pub fn query_authenticated_events(
             .with_reason(ErrorReason::FieldInvalid)
     })?;
 
-    fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
-        let mut out = Event::default();
-        out.package_id = Some(ev.package_id.to_canonical_string(true));
-        out.module = Some(ev.transaction_module.to_string());
-        out.sender = Some(ev.sender.to_string());
-        out.event_type = Some(ev.type_.to_canonical_string(true));
-        let mut bcs = sui_rpc::proto::sui::rpc::v2beta2::Bcs::default();
-        bcs.value = Some(Bytes::from(ev.contents.clone()));
-        out.contents = Some(bcs);
-        out
-    }
-
-    fn to_authenticated_event(
-        stream_id: &str,
-        cp: u64,
-        txd: &sui_types::base_types::TransactionDigest,
-        idx: u32,
-        ev: &sui_types::event::Event,
-    ) -> AuthenticatedEvent {
-        let mut ae = AuthenticatedEvent::default();
-        ae.checkpoint = Some(cp);
-        ae.tx_digest = Some(txd.to_string());
-        ae.event_index = Some(idx);
-        ae.event = Some(to_grpc_event(ev));
-        ae.stream_id = Some(stream_id.to_string());
-        ae
-    }
-
+    let highest_indexed = reader
+        .indexes()
+        .and_then(|idx| idx
+            .get_highest_indexed_checkpoint_seq_number()
+            .ok()
+            .flatten()
+        ).unwrap();
+    let capped_end = end.min(highest_indexed);
     let iter = indexes
-        .authenticated_event_iter(stream_addr, start, end)
+        .authenticated_event_iter(stream_addr, start, capped_end)
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
     let events: Vec<AuthenticatedEvent> = iter
         .map(|res| res.map(|(cp, txd, idx, ev)| to_authenticated_event(&stream_id, cp, &txd, idx, &ev)))
@@ -152,6 +165,7 @@ pub fn query_authenticated_events(
         .and_then(|last_checkpoint| load_event_stream_head(reader, &stream_id, last_checkpoint));
     let mut resp = QueryAuthenticatedEventsResponse::default();
     resp.events = events;
+    resp.last_checkpoint = Some(capped_end);
     resp.proof = event_stream_head.map(|esh| {
         let mut p = Proof::default();
         p.event_stream_head = Some(esh);
