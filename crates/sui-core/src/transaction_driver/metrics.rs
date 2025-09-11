@@ -16,7 +16,7 @@ const SUBMIT_TRANSACTION_RETRIES_BUCKETS: &[f64] = &[
 #[derive(Clone)]
 pub struct TransactionDriverMetrics {
     pub(crate) settlement_finality_latency: HistogramVec,
-    pub(crate) total_transactions_submitted: IntCounter,
+    pub(crate) total_transactions_submitted: IntCounterVec,
     pub(crate) submit_transaction_retries: Histogram,
     pub(crate) submit_transaction_latency: Histogram,
     pub(crate) validator_submit_transaction_errors: IntCounterVec,
@@ -40,14 +40,15 @@ impl TransactionDriverMetrics {
             settlement_finality_latency: register_histogram_vec_with_registry!(
                 "transaction_driver_settlement_finality_latency",
                 "Settlement finality latency observed from transaction driver",
-                &["tx_type"],
+                &["tx_type", "ping"],
                 mysten_metrics::LATENCY_SEC_BUCKETS.to_vec(),
                 registry,
             )
             .unwrap(),
-            total_transactions_submitted: register_int_counter_with_registry!(
+            total_transactions_submitted: register_int_counter_vec_with_registry!(
                 "transaction_driver_total_transactions_submitted",
                 "Total number of transactions submitted through the transaction driver",
+                &["tx_type", "ping"],
                 registry,
             )
             .unwrap(),
@@ -108,7 +109,7 @@ impl TransactionDriverMetrics {
             transaction_retries: register_histogram_vec_with_registry!(
                 "transaction_driver_transaction_retries",
                 "Number of retries per transaction attempt in drive_transaction",
-                &["result"],
+                &["result", "tx_type", "ping"],
                 SUBMIT_TRANSACTION_RETRIES_BUCKETS.to_vec(),
                 registry,
             )
