@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod ledger_service;
-pub mod query_authenticated_events;
+pub mod list_authenticated_events;
 mod live_data_service;
 mod move_package_service;
 mod name_service;

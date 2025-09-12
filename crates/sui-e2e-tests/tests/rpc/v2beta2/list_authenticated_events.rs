@@ -4,7 +4,7 @@
 use sui_macros::sim_test;
 use sui_protocol_config::ProtocolConfig;
 use sui_rpc_api::grpc::v2beta2::event_service_proto::event_service_client::EventServiceClient;
-use sui_rpc_api::grpc::v2beta2::event_service_proto::{Event, QueryAuthenticatedEventsRequest};
+use sui_rpc_api::grpc::v2beta2::event_service_proto::{Event, ListAuthenticatedEventsRequest};
 use sui_keys::keystore::AccountKeystore;
 use serde::{Deserialize, Serialize};
 use sui_types::programmable_transaction_builder::ProgrammableTransactionBuilder;
@@ -17,7 +17,7 @@ struct AuthEventPayload {
 }
 
 #[sim_test]
-async fn query_authenticated_events_end_to_end() {
+async fn list_authenticated_events_end_to_end() {
     let _guard: sui_protocol_config::OverrideGuard = ProtocolConfig::apply_overrides_for_testing(|_, mut cfg| {
         cfg.enable_accumulators_for_testing();
         cfg
@@ -69,12 +69,12 @@ async fn query_authenticated_events_end_to_end() {
         .await
         .unwrap();
 
-    let mut req = QueryAuthenticatedEventsRequest::default();
+    let mut req = ListAuthenticatedEventsRequest::default();
     req.stream_id = Some(package_id.to_string());
     req.start_checkpoint = Some(0);
     req.limit = Some(1000);
     let resp = client
-        .query_authenticated_events(req)
+        .list_authenticated_events(req)
         .await
         .unwrap()
         .into_inner();

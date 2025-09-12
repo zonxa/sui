@@ -8,30 +8,29 @@ import "google/protobuf/struct.proto";
 
 // EventService provides paginated access to authenticated events per stream.
 service EventService {
-  // Returns authenticated events for a given event stream ID, starting at a
-  // checkpoint and spanning at most `limit` checkpoints (capped at 1000).
-  rpc QueryAuthenticatedEvents(QueryAuthenticatedEventsRequest) returns (QueryAuthenticatedEventsResponse);
+  // Returns authenticated events for a given event stream ID.
+  rpc ListAuthenticatedEvents(ListAuthenticatedEventsRequest) returns (ListAuthenticatedEventsResponse);
 }
 
 // Request authenticated events for a stream within a checkpoint range.
-message QueryAuthenticatedEventsRequest {
+message ListAuthenticatedEventsRequest {
   // Required. Stream identifier (Sui address) that owns the event stream.
   optional string stream_id = 1;
 
   // Inclusive start checkpoint (default: 0)
   optional uint64 start_checkpoint = 2;
 
-  // Upper limit of checkpoints to return
+  // Upper limit of checkpoints to return, max 1000.
   optional uint64 limit = 3;
 }
 
 // Response containing events and the stream head metadata.
-message QueryAuthenticatedEventsResponse {
+message ListAuthenticatedEventsResponse {
   repeated AuthenticatedEvent events = 1;
   // A placeholder for an eventual inclusion proof. For now, it wraps the EventStreamHead.
-  optional Proof proof = 3;
+  optional Proof proof = 2;
   // The last checkpoint in this range.
-  optional uint64 last_checkpoint = 4;
+  optional uint64 last_checkpoint = 3;
 }
 
 // Single authenticated Move event entry.

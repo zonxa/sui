@@ -16,7 +16,7 @@ mod move_package_service;
 mod signature_verification_service;
 mod subscription_service;
 mod transaction_execution_service;
-mod query_authenticated_events;
+mod list_authenticated_events;
 
 async fn execute_transaction(
     client: &mut Client,

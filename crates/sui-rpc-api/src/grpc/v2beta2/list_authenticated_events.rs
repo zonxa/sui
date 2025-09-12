@@ -9,8 +9,8 @@ use sui_types::accumulator_root as ar;
 use std::str::FromStr;
 use std::sync::Arc;
 use crate::grpc::v2beta2::event_service_proto::{
-    AuthenticatedEvent, EventStreamHead, Proof, QueryAuthenticatedEventsRequest,
-    QueryAuthenticatedEventsResponse, Event, Bcs,
+    AuthenticatedEvent, EventStreamHead, Proof, ListAuthenticatedEventsRequest,
+    ListAuthenticatedEventsResponse, Event, Bcs,
 };
 use sui_types::effects::TransactionEffectsAPI;
 
@@ -106,10 +106,10 @@ pub(crate) fn load_event_stream_head(
 }
 
 #[tracing::instrument(skip(_service))]
-pub fn query_authenticated_events(
+pub fn list_authenticated_events(
     _service: &RpcService,
-    request: QueryAuthenticatedEventsRequest,
-) -> Result<QueryAuthenticatedEventsResponse, RpcError> {
+    request: ListAuthenticatedEventsRequest,
+) -> Result<ListAuthenticatedEventsResponse, RpcError> {
     let stream_id = request.stream_id.ok_or_else(|| {
         RpcError::new(
             tonic::Code::InvalidArgument,
@@ -154,7 +154,7 @@ pub fn query_authenticated_events(
 
     let event_stream_head = last_checkpoint_with_events
         .and_then(|last_checkpoint| load_event_stream_head(reader, &stream_id, last_checkpoint));
-    let mut resp = QueryAuthenticatedEventsResponse::default();
+    let mut resp = ListAuthenticatedEventsResponse::default();
     resp.events = events;
     resp.last_checkpoint = Some(capped_end);
     resp.proof = event_stream_head.map(|esh| {
