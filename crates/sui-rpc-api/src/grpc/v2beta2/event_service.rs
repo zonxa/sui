@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::RpcService;
-use sui_rpc::proto::sui::rpc::v2beta2::event_service_server::EventService;
-use sui_rpc::proto::sui::rpc::v2beta2::{
+use crate::grpc::v2beta2::event_service_proto::event_service_server::EventService;
+use crate::grpc::v2beta2::event_service_proto::{
     QueryAuthenticatedEventsRequest, QueryAuthenticatedEventsResponse,
 };
 use crate::grpc::v2beta2::query_authenticated_events;

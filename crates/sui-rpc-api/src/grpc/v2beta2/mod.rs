@@ -11,6 +11,9 @@ mod subscription_service;
 mod transaction_execution_service;
 pub use ledger_service::protocol_config_to_proto;
 pub mod event_service;
+pub mod event_service_proto {
+    include!("../../proto/generated/sui.rpc.v2beta2.rs");
+}
 
 fn render_json(
     service: &crate::RpcService,

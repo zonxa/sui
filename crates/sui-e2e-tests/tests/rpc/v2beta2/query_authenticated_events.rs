@@ -3,8 +3,8 @@
 
 use sui_macros::sim_test;
 use sui_protocol_config::ProtocolConfig;
-use sui_rpc::proto::sui::rpc::v2beta2::event_service_client::EventServiceClient;
-use sui_rpc::proto::sui::rpc::v2beta2::{Event, QueryAuthenticatedEventsRequest};
+use sui_rpc_api::grpc::v2beta2::event_service_proto::event_service_client::EventServiceClient;
+use sui_rpc_api::grpc::v2beta2::event_service_proto::{EventContents, QueryAuthenticatedEventsRequest};
 use sui_keys::keystore::AccountKeystore;
 use serde::{Deserialize, Serialize};
 use sui_types::programmable_transaction_builder::ProgrammableTransactionBuilder;
@@ -81,9 +81,7 @@ async fn query_authenticated_events_end_to_end() {
     let count = resp.events.len();
     assert_eq!(count, 10, "expected 10 authenticated events, got {count}");
     let found = resp.events.iter().any(|e| match &e.event {
-        Some(Event { contents: Some(bcs), .. }) => {
-            !bcs.value.clone().unwrap_or_default().is_empty()
-        }
+        Some(EventContents { contents: Some(bcs), .. }) => !bcs.value.clone().unwrap_or_default().is_empty(),
         _ => false,
     });
     assert!(found, "expected authenticated event for the stream");

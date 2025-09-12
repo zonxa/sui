@@ -12,7 +12,7 @@ use tap::Pipe;
 pub mod client;
 mod config;
 mod error;
-mod grpc;
+pub mod grpc;
 mod metrics;
 mod reader;
 mod response;
@@ -116,7 +116,7 @@ impl RpcService {
                     self.clone(),
                 );
             let event_service2 =
-                sui_rpc::proto::sui::rpc::v2beta2::event_service_server::EventServiceServer::new(
+                crate::grpc::v2beta2::event_service_proto::event_service_server::EventServiceServer::new(
                     self.clone(),
                 );
             let transaction_execution_service2 = sui_rpc::proto::sui::rpc::v2beta2::transaction_execution_service_server::TransactionExecutionServiceServer::new(self.clone());
@@ -135,9 +135,6 @@ impl RpcService {
                 )
                 .register_encoded_file_descriptor_set(
                     crate::proto::google::rpc::FILE_DESCRIPTOR_SET,
-                )
-                .register_encoded_file_descriptor_set(
-                    sui_rpc::proto::sui::rpc::v2beta2::FILE_DESCRIPTOR_SET,
                 )
                 .register_encoded_file_descriptor_set(tonic_health::pb::FILE_DESCRIPTOR_SET)
                 .build_v1()

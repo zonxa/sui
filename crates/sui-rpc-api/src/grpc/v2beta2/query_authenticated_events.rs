@@ -1,31 +1,28 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::ErrorReason;
 use crate::RpcError;
 use crate::RpcService;
-use bytes::Bytes;
 use move_core_types::language_storage::{StructTag, TypeTag};
 use sui_types::MoveTypeTagTraitGeneric;
 use sui_types::accumulator_root as ar;
 use std::str::FromStr;
 use std::sync::Arc;
-use sui_rpc::proto::sui::rpc::v2beta2::{
+use crate::grpc::v2beta2::event_service_proto::{
     AuthenticatedEvent, EventStreamHead, Proof, QueryAuthenticatedEventsRequest,
-    QueryAuthenticatedEventsResponse, Event,
+    QueryAuthenticatedEventsResponse, EventContents, Bcs,
 };
-use sui_rpc::proto::google::rpc::bad_request::FieldViolation;
 use sui_types::effects::TransactionEffectsAPI;
 
 
-fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
-    let mut out = Event::default();
+fn to_grpc_event(ev: &sui_types::event::Event) -> EventContents {
+    let mut out = EventContents::default();
     out.package_id = Some(ev.package_id.to_canonical_string(true));
     out.module = Some(ev.transaction_module.to_string());
     out.sender = Some(ev.sender.to_string());
     out.event_type = Some(ev.type_.to_canonical_string(true));
-    let mut bcs = sui_rpc::proto::sui::rpc::v2beta2::Bcs::default();
-    bcs.value = Some(Bytes::from(ev.contents.clone()));
+    let mut bcs = Bcs::default();
+    bcs.value = Some(ev.contents.clone());
     out.contents = Some(bcs);
     out
 }
@@ -102,7 +99,7 @@ pub(crate) fn load_event_stream_head(
     >>()?;
 
     let mut out = EventStreamHead::default();
-    out.mmr = field.value.mmr.into_iter().map(Bytes::from).collect();
+    out.mmr = field.value.mmr;
     out.checkpoint_seq = Some(field.value.checkpoint_seq);
     out.num_events = Some(field.value.num_events);
     Some(out)
@@ -113,23 +110,20 @@ pub fn query_authenticated_events(
     _service: &RpcService,
     request: QueryAuthenticatedEventsRequest,
 ) -> Result<QueryAuthenticatedEventsResponse, RpcError> {
-    let stream_id = request
-        .stream_id
-        .ok_or_else(|| {
-            FieldViolation::new("stream_id")
-                .with_description("missing stream_id")
-                .with_reason(ErrorReason::FieldMissing)
-        })?;
+    let stream_id = request.stream_id.ok_or_else(|| {
+        RpcError::new(
+            tonic::Code::InvalidArgument,
+            "missing stream_id".to_string(),
+        )
+    })?;
 
     let start = request.start_checkpoint.unwrap_or(0);
     if let Some(lim) = request.limit {
         if lim > 1000 {
-            return Err(
-                FieldViolation::new("limit")
-                    .with_description("limit must be <= 1000")
-                    .with_reason(ErrorReason::FieldInvalid)
-                    .into(),
-            );
+            return Err(RpcError::new(
+                tonic::Code::InvalidArgument,
+                "limit must be <= 1000".to_string(),
+            ));
         }
     }
     let limit = request.limit.unwrap_or(1000);
@@ -138,11 +132,8 @@ pub fn query_authenticated_events(
     let reader = _service.reader.inner();
     let indexes = reader.indexes().ok_or_else(RpcError::not_found)?;
 
-    let stream_addr = sui_types::base_types::SuiAddress::from_str(&stream_id).map_err(|e| {
-        FieldViolation::new("stream_id")
-            .with_description(format!("invalid stream_id: {e}"))
-            .with_reason(ErrorReason::FieldInvalid)
-    })?;
+    let stream_addr = sui_types::base_types::SuiAddress::from_str(&stream_id)
+        .map_err(|e| RpcError::new(tonic::Code::InvalidArgument, format!("invalid stream_id: {e}")))?;
 
     let highest_indexed = reader
         .indexes()
