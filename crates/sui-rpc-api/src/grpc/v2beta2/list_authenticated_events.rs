@@ -1,30 +1,29 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::grpc::v2beta2::event_service_proto::{
+    AuthenticatedEvent, Bcs, Event, EventStreamHead, ListAuthenticatedEventsRequest,
+    ListAuthenticatedEventsResponse, Proof,
+};
 use crate::RpcError;
 use crate::RpcService;
 use move_core_types::language_storage::{StructTag, TypeTag};
-use sui_types::MoveTypeTagTraitGeneric;
-use sui_types::accumulator_root as ar;
 use std::str::FromStr;
 use std::sync::Arc;
-use crate::grpc::v2beta2::event_service_proto::{
-    AuthenticatedEvent, EventStreamHead, Proof, ListAuthenticatedEventsRequest,
-    ListAuthenticatedEventsResponse, Event, Bcs,
-};
+use sui_types::accumulator_root as ar;
 use sui_types::effects::TransactionEffectsAPI;
-
+use sui_types::MoveTypeTagTraitGeneric;
 
 fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
-    let mut out = Event::default();
-    out.package_id = Some(ev.package_id.to_canonical_string(true));
-    out.module = Some(ev.transaction_module.to_string());
-    out.sender = Some(ev.sender.to_string());
-    out.event_type = Some(ev.type_.to_canonical_string(true));
-    let mut bcs = Bcs::default();
-    bcs.value = Some(ev.contents.clone());
-    out.contents = Some(bcs);
-    out
+    let bcs = Bcs { value: Some(ev.contents.clone()) };
+    Event {
+        package_id: Some(ev.package_id.to_canonical_string(true)),
+        module: Some(ev.transaction_module.to_string()),
+        sender: Some(ev.sender.to_string()),
+        event_type: Some(ev.type_.to_canonical_string(true)),
+        contents: Some(bcs),
+        json: None,
+    }
 }
 
 fn to_authenticated_event(
@@ -34,13 +33,13 @@ fn to_authenticated_event(
     idx: u32,
     ev: &sui_types::event::Event,
 ) -> AuthenticatedEvent {
-    let mut ae = AuthenticatedEvent::default();
-    ae.checkpoint = Some(cp);
-    ae.tx_digest = Some(txd.to_string());
-    ae.event_index = Some(idx);
-    ae.event = Some(to_grpc_event(ev));
-    ae.stream_id = Some(stream_id.to_string());
-    ae
+    AuthenticatedEvent {
+        checkpoint: Some(cp),
+        tx_digest: Some(txd.to_string()),
+        event_index: Some(idx),
+        event: Some(to_grpc_event(ev)),
+        stream_id: Some(stream_id.to_string()),
+    }
 }
 
 pub(crate) fn load_event_stream_head(
@@ -67,7 +66,9 @@ pub(crate) fn load_event_stream_head(
         let key_type_tag = ar::AccumulatorKey::get_type_tag(&[TypeTag::Struct(Box::new(tag))]);
         let df_key = sui_types::dynamic_field::DynamicFieldKey(
             sui_types::SUI_ACCUMULATOR_ROOT_OBJECT_ID,
-            ar::AccumulatorKey { owner: stream_address },
+            ar::AccumulatorKey {
+                owner: stream_address,
+            },
             key_type_tag,
         );
         df_key.into_unbounded_id().ok()?.as_object_id()
@@ -98,11 +99,11 @@ pub(crate) fn load_event_stream_head(
         MoveEventStreamHead,
     >>()?;
 
-    let mut out = EventStreamHead::default();
-    out.mmr = field.value.mmr;
-    out.checkpoint_seq = Some(field.value.checkpoint_seq);
-    out.num_events = Some(field.value.num_events);
-    Some(out)
+    Some(EventStreamHead {
+        mmr: field.value.mmr,
+        checkpoint_seq: Some(field.value.checkpoint_seq),
+        num_events: Some(field.value.num_events),
+    })
 }
 
 #[tracing::instrument(skip(_service))]
@@ -132,35 +133,38 @@ pub fn list_authenticated_events(
     let reader = _service.reader.inner();
     let indexes = reader.indexes().ok_or_else(RpcError::not_found)?;
 
-    let stream_addr = sui_types::base_types::SuiAddress::from_str(&stream_id)
-        .map_err(|e| RpcError::new(tonic::Code::InvalidArgument, format!("invalid stream_id: {e}")))?;
+    let stream_addr = sui_types::base_types::SuiAddress::from_str(&stream_id).map_err(|e| {
+        RpcError::new(
+            tonic::Code::InvalidArgument,
+            format!("invalid stream_id: {e}"),
+        )
+    })?;
 
     let highest_indexed = reader
         .indexes()
-        .and_then(|idx| idx
-            .get_highest_indexed_checkpoint_seq_number()
-            .ok()
-            .flatten()
-        ).unwrap();
+        .and_then(|idx| {
+            idx.get_highest_indexed_checkpoint_seq_number()
+                .ok()
+                .flatten()
+        })
+        .unwrap();
     let capped_end = end.min(highest_indexed);
     let iter = indexes
         .authenticated_event_iter(stream_addr, start, capped_end)
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
     let events: Vec<AuthenticatedEvent> = iter
-        .map(|res| res.map(|(cp, txd, idx, ev)| to_authenticated_event(&stream_id, cp, &txd, idx, &ev)))
+        .map(|res| {
+            res.map(|(cp, txd, idx, ev)| to_authenticated_event(&stream_id, cp, &txd, idx, &ev))
+        })
         .collect::<Result<_, _>>()
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
     let last_checkpoint_with_events = events.last().and_then(|e| e.checkpoint);
 
     let event_stream_head = last_checkpoint_with_events
         .and_then(|last_checkpoint| load_event_stream_head(reader, &stream_id, last_checkpoint));
-    let mut resp = ListAuthenticatedEventsResponse::default();
-    resp.events = events;
-    resp.last_checkpoint = Some(capped_end);
-    resp.proof = event_stream_head.map(|esh| {
-        let mut p = Proof::default();
-        p.event_stream_head = Some(esh);
-        p
-    });
-    Ok(resp)
+    Ok(ListAuthenticatedEventsResponse {
+        events,
+        proof: event_stream_head.map(|esh| Proof { event_stream_head: Some(esh) }),
+        last_checkpoint: Some(capped_end),
+    })
 }

@@ -21,5 +21,3 @@ fn main() {
         .compile_protos(&[proto_file], &[sui_proto_dir])
         .expect("compile event_service.proto");
 }
-
-

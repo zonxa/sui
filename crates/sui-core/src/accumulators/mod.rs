@@ -370,8 +370,6 @@ impl AccumulatorSettlementTxBuilder {
             tracing::debug!("accumulator settlement includes EventDigest updates");
         }
 
-        
-
         builder.programmable_move_call(
             SUI_FRAMEWORK_PACKAGE_ID,
             ACCUMULATOR_SETTLEMENT_MODULE.into(),
