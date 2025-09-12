@@ -29,13 +29,13 @@ fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
 fn to_authenticated_event(
     stream_id: &str,
     cp: u64,
-    txd: &sui_types::base_types::TransactionDigest,
+    transaction_idx: u32,
     idx: u32,
     ev: &sui_types::event::Event,
 ) -> AuthenticatedEvent {
     AuthenticatedEvent {
         checkpoint: Some(cp),
-        tx_digest: Some(txd.to_string()),
+        transaction_idx: Some(transaction_idx),
         event_index: Some(idx),
         event: Some(to_grpc_event(ev)),
         stream_id: Some(stream_id.to_string()),
@@ -154,7 +154,7 @@ pub fn list_authenticated_events(
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
     let events: Vec<AuthenticatedEvent> = iter
         .map(|res| {
-            res.map(|(cp, txd, idx, ev)| to_authenticated_event(&stream_id, cp, &txd, idx, &ev))
+            res.map(|(cp, transaction_idx, idx, ev)| to_authenticated_event(&stream_id, cp, transaction_idx, idx, &ev))
         })
         .collect::<Result<_, _>>()
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;

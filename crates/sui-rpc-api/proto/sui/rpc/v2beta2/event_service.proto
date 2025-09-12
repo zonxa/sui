@@ -38,8 +38,8 @@ message AuthenticatedEvent {
   // The checkpoint sequence number where this event was recorded.
   optional uint64 checkpoint = 1;
 
-  // Transaction digest where the event was emitted.
-  optional string tx_digest = 2;
+  // Index of the transaction within the checkpoint where the event was emitted.
+  optional uint32 transaction_idx = 2;
 
   // Index of the event within the transaction's event list.
   optional uint32 event_index = 3;

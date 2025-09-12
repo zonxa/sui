@@ -20,7 +20,6 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
 use sui_config::RpcIndexInitConfig;
-use sui_types::accumulator_event::AccumulatorEvent;
 use sui_types::base_types::MoveObjectType;
 use sui_types::base_types::ObjectID;
 use sui_types::base_types::SequenceNumber;
@@ -28,14 +27,15 @@ use sui_types::base_types::SuiAddress;
 use sui_types::coin::Coin;
 use sui_types::committee::EpochId;
 use sui_types::digests::TransactionDigest;
-use sui_types::event::Event;
 use sui_types::full_checkpoint_content::CheckpointData;
+use sui_types::event::Event;
 use sui_types::layout_resolver::LayoutResolver;
 use sui_types::messages_checkpoint::CheckpointContents;
 use sui_types::messages_checkpoint::CheckpointSequenceNumber;
 use sui_types::object::Data;
 use sui_types::object::Object;
 use sui_types::object::Owner;
+use sui_types::accumulator_event::AccumulatorEvent;
 use sui_types::storage::error::Error as StorageError;
 use sui_types::storage::BackingPackageStore;
 use sui_types::storage::DynamicFieldKey;
@@ -336,8 +336,8 @@ struct IndexStoreTables {
     /// Allows efficient listing of all versions of a package.
     #[default_options_override_fn = "default_table_options"]
     package_version: DBMap<PackageVersionKey, PackageVersionInfo>,
-
-    /// Authenticated events index by (stream_id, checkpoint_seq, tx_digest, event_index)
+    
+    /// Authenticated events index by (stream_id, checkpoint_seq, transaction_idx, event_index)
     /// Value is the full sui_types::event::Event
     #[default_options_override_fn = "default_table_options"]
     events_by_stream: DBMap<EventIndexKey, Event>,
@@ -350,7 +350,7 @@ struct IndexStoreTables {
 pub struct EventIndexKey {
     pub stream_id: SuiAddress,
     pub checkpoint_seq: u64,
-    pub tx_digest: TransactionDigest,
+    pub transaction_idx: u32,
     pub event_index: u32,
 }
 
@@ -623,7 +623,7 @@ impl IndexStoreTables {
         let mut entries: Vec<(EventIndexKey, Event)> = Vec::new();
         let cp = checkpoint.checkpoint_summary.sequence_number;
 
-        for tx in &checkpoint.transactions {
+        for (tx_idx, tx) in checkpoint.transactions.iter().enumerate() {
             let acc_events = tx.effects.accumulator_events();
             if acc_events.is_empty() {
                 continue;
@@ -642,9 +642,7 @@ impl IndexStoreTables {
                 continue;
             }
 
-            let Some(tx_events) = tx.events.as_ref() else {
-                continue;
-            };
+            let Some(tx_events) = tx.events.as_ref() else { continue };
             for (stream_id, idx) in per_tx_indices {
                 let ui = idx as usize;
                 if ui < tx_events.data.len() {
@@ -652,7 +650,7 @@ impl IndexStoreTables {
                     let key = EventIndexKey {
                         stream_id,
                         checkpoint_seq: cp,
-                        tx_digest: *tx.transaction.digest(),
+                        transaction_idx: tx_idx as u32,
                         event_index: idx as u32,
                     };
                     entries.push((key, ev.clone()));
@@ -882,7 +880,7 @@ impl IndexStoreTables {
         let lower = EventIndexKey {
             stream_id,
             checkpoint_seq: start,
-            tx_digest: TransactionDigest::ZERO,
+            transaction_idx: 0,
             event_index: 0,
         };
         Ok(self
@@ -1406,7 +1404,6 @@ impl RpcIndexStore {
         self.tables.event_iter(stream_id, start, end)
     }
 
-    /// Returns the highest checkpoint sequence number that has been indexed.
     pub fn get_highest_indexed_checkpoint_seq_number(
         &self,
     ) -> Result<Option<CheckpointSequenceNumber>, TypedStoreError> {

@@ -632,7 +632,7 @@ impl RpcIndexes for RpcIndexStore {
         Box<
             dyn Iterator<
                     Item = Result<
-                        (u64, TransactionDigest, u32, sui_types::event::Event),
+                        (u64, u32, u32, sui_types::event::Event),
                         TypedStoreError,
                     >,
                 > + '_,
@@ -640,7 +640,7 @@ impl RpcIndexes for RpcIndexStore {
     > {
         let iter = self
             .event_iter(stream_id, start_checkpoint, end_checkpoint)?
-            .map(|res| res.map(|(k, v)| (k.checkpoint_seq, k.tx_digest, k.event_index, v)));
+            .map(|res| res.map(|(k, v)| (k.checkpoint_seq, k.transaction_idx, k.event_index, v)));
         Ok(Box::new(iter))
     }
 }

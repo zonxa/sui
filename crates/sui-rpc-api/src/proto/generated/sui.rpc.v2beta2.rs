@@ -30,9 +30,9 @@ pub struct AuthenticatedEvent {
     /// The checkpoint sequence number where this event was recorded.
     #[prost(uint64, optional, tag = "1")]
     pub checkpoint: ::core::option::Option<u64>,
-    /// Transaction digest where the event was emitted.
-    #[prost(string, optional, tag = "2")]
-    pub tx_digest: ::core::option::Option<::prost::alloc::string::String>,
+    /// Index of the transaction within the checkpoint where the event was emitted.
+    #[prost(uint32, optional, tag = "2")]
+    pub transaction_idx: ::core::option::Option<u32>,
     /// Index of the event within the transaction's event list.
     #[prost(uint32, optional, tag = "3")]
     pub event_index: ::core::option::Option<u32>,

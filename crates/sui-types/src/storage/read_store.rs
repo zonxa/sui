@@ -30,7 +30,7 @@ use typed_store_error::TypedStoreError;
 pub type BalanceIterator<'a> = Box<dyn Iterator<Item = Result<(StructTag, BalanceInfo)>> + 'a>;
 pub type PackageVersionsIterator<'a> =
     Box<dyn Iterator<Item = Result<(u64, ObjectID), TypedStoreError>> + 'a>;
-pub type AuthenticatedEventRecord = (u64, TransactionDigest, u32, crate::event::Event);
+pub type AuthenticatedEventRecord = (u64, u32, u32, crate::event::Event);
 
 pub trait ReadStore: ObjectStore {
     //
@@ -620,7 +620,7 @@ pub trait RpcIndexes: Send + Sync {
         -> Result<Option<CheckpointSequenceNumber>>;
 
     /// Iterate authenticated events for a stream within an inclusive checkpoint range.
-    /// Each item yields (checkpoint_seq, tx_digest, event_index, Event)
+    /// Each item yields (checkpoint_seq, transaction_idx, event_index, Event)
     fn authenticated_event_iter(
         &self,
         stream_id: SuiAddress,
