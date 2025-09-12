@@ -15,7 +15,9 @@ use sui_types::effects::TransactionEffectsAPI;
 use sui_types::MoveTypeTagTraitGeneric;
 
 fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
-    let bcs = Bcs { value: Some(ev.contents.clone()) };
+    let bcs = Bcs {
+        value: Some(ev.contents.clone()),
+    };
     Event {
         package_id: Some(ev.package_id.to_canonical_string(true)),
         module: Some(ev.transaction_module.to_string()),
@@ -154,7 +156,9 @@ pub fn list_authenticated_events(
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
     let events: Vec<AuthenticatedEvent> = iter
         .map(|res| {
-            res.map(|(cp, transaction_idx, idx, ev)| to_authenticated_event(&stream_id, cp, transaction_idx, idx, &ev))
+            res.map(|(cp, transaction_idx, idx, ev)| {
+                to_authenticated_event(&stream_id, cp, transaction_idx, idx, &ev)
+            })
         })
         .collect::<Result<_, _>>()
         .map_err(|e| RpcError::new(tonic::Code::Internal, e.to_string()))?;
@@ -164,7 +168,9 @@ pub fn list_authenticated_events(
         .and_then(|last_checkpoint| load_event_stream_head(reader, &stream_id, last_checkpoint));
     Ok(ListAuthenticatedEventsResponse {
         events,
-        proof: event_stream_head.map(|esh| Proof { event_stream_head: Some(esh) }),
+        proof: event_stream_head.map(|esh| Proof {
+            event_stream_head: Some(esh),
+        }),
         last_checkpoint: Some(capped_end),
     })
 }

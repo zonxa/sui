@@ -630,12 +630,8 @@ impl RpcIndexes for RpcIndexStore {
         end_checkpoint: u64,
     ) -> sui_types::storage::error::Result<
         Box<
-            dyn Iterator<
-                    Item = Result<
-                        (u64, u32, u32, sui_types::event::Event),
-                        TypedStoreError,
-                    >,
-                > + '_,
+            dyn Iterator<Item = Result<(u64, u32, u32, sui_types::event::Event), TypedStoreError>>
+                + '_,
         >,
     > {
         let iter = self
