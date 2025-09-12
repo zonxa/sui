@@ -32,7 +32,6 @@ async fn list_authenticated_events_end_to_end() {
     let (package_id, _, _) =
         { sui_test_transaction_builder::publish_package(&test_cluster.wallet, path).await };
 
-    // Submit 10 transactions, one authenticated event per transaction
     let sender = test_cluster.wallet.config.keystore.addresses()[0];
     for i in 1..=10u64 {
         let emit_value = 100 + i;
@@ -171,7 +170,7 @@ async fn list_authenticated_events_empty_gap_multiple_checkpoints() {
         .last_checkpoint
         .unwrap_or(0);
 
-    // Submit 3 transactions without authenticated events
+    // Submit transactions without authenticated events
     let rgp = test_cluster.get_reference_gas_price().await;
     for _ in 0..3u64 {
         let ptb =

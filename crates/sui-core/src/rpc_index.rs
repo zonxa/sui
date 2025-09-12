@@ -28,6 +28,7 @@ use sui_types::base_types::SuiAddress;
 use sui_types::coin::Coin;
 use sui_types::committee::EpochId;
 use sui_types::digests::TransactionDigest;
+use sui_types::effects::{AccumulatorValue, TransactionEffectsAPI};
 use sui_types::event::Event;
 use sui_types::full_checkpoint_content::CheckpointData;
 use sui_types::layout_resolver::LayoutResolver;
@@ -563,7 +564,7 @@ impl IndexStoreTables {
 
         let to_delete: Vec<EventIndexKey> = self
             .events_by_stream
-            .safe_iter() //TODO: do we need a lower bound? this will always be a table scan
+            .safe_iter()
             .take_while(|item| match item {
                 Ok((key, _)) => key.checkpoint_seq <= pruned_checkpoint_watermark,
                 Err(_) => true,
@@ -618,8 +619,6 @@ impl IndexStoreTables {
         checkpoint: &CheckpointData,
         batch: &mut typed_store::rocks::DBBatch,
     ) -> Result<(), StorageError> {
-        use sui_types::effects::{AccumulatorValue, TransactionEffectsAPI};
-
         let mut entries: Vec<(EventIndexKey, Event)> = Vec::new();
         let cp = checkpoint.checkpoint_summary.sequence_number;
 

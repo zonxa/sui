@@ -197,13 +197,6 @@ impl MergedValueIntermediate {
                 *v2 += w2 as u128;
             }
             (Self::Events(commitments), AccumulatorValue::EventDigest(event_idx, digest)) => {
-                tracing::debug!(
-                    checkpoint_seq,
-                    transaction_idx,
-                    event_idx,
-                    ?digest,
-                    "accumulator Events: accumulated EventDigest"
-                );
                 commitments.push(EventCommitment {
                     checkpoint_seq,
                     transaction_idx,
@@ -361,15 +354,6 @@ impl AccumulatorSettlementTxBuilder {
         tracing::debug!("total_input_sui: {}", self.total_input_sui);
         tracing::debug!("total_output_sui: {}", self.total_output_sui);
 
-        // Log if there are any EventDigest updates in this checkpoint
-        let has_event_digest_update = self.updates.iter().any(|(_id, update)| {
-            matches!(update.merge, MergedValueIntermediate::Events(_))
-                || matches!(update.split, MergedValueIntermediate::Events(_))
-        });
-        if has_event_digest_update {
-            tracing::debug!("accumulator settlement includes EventDigest updates");
-        }
-
         builder.programmable_move_call(
             SUI_FRAMEWORK_PACKAGE_ID,
             ACCUMULATOR_SETTLEMENT_MODULE.into(),
@@ -389,12 +373,6 @@ impl AccumulatorSettlementTxBuilder {
             let address = self.addresses.get(&accumulator_obj).unwrap();
             let merged_value = MergedValue::from(merge);
             let split_value = MergedValue::from(split);
-            tracing::debug!(
-                ?accumulator_obj,
-                ?merged_value,
-                ?split_value,
-                "accumulator update merged/split values"
-            );
             MergedValue::add_move_call(merged_value, split_value, root, address, &mut builder);
         }
 
