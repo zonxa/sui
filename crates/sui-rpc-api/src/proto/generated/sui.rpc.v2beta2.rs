@@ -38,7 +38,7 @@ pub struct AuthenticatedEvent {
     pub event_index: ::core::option::Option<u32>,
     /// The event payload.
     #[prost(message, optional, tag = "4")]
-    pub event: ::core::option::Option<EventContents>,
+    pub event: ::core::option::Option<Event>,
     /// The stream identifier (owner address) for which this event is authenticated.
     #[prost(string, optional, tag = "5")]
     pub stream_id: ::core::option::Option<::prost::alloc::string::String>,
@@ -63,9 +63,9 @@ pub struct Proof {
     pub event_stream_head: ::core::option::Option<EventStreamHead>,
 }
 /// An event.
-/// TODO: Copied from sui-rust-sdk and renamed to avoid name collision; we should use the existing struct.
+/// TODO: Copied from sui-rust-sdk; we should use the existing struct.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventContents {
+pub struct Event {
     /// Package ID of the top-level function invoked by a `MoveCall` command that triggered this
     /// event to be emitted.
     #[prost(string, optional, tag = "1")]

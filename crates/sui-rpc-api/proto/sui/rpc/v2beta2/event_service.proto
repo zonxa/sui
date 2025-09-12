@@ -46,7 +46,7 @@ message AuthenticatedEvent {
   optional uint32 event_index = 3;
 
   // The event payload.
-  optional EventContents event = 4;
+  optional Event event = 4;
 
   // The stream identifier (owner address) for which this event is authenticated.
   optional string stream_id = 5;
@@ -69,9 +69,9 @@ message Proof {
   optional EventStreamHead event_stream_head = 1;
 }
 
-// An event. 
-// TODO: Copied from sui-rust-sdk and renamed to avoid name collision; we should use the existing struct.
-message EventContents {
+// An event.
+// TODO: Copied from sui-rust-sdk; we should use the existing struct.
+message Event {
   // Package ID of the top-level function invoked by a `MoveCall` command that triggered this
   // event to be emitted.
   optional string package_id = 1;

@@ -10,13 +10,13 @@ use std::str::FromStr;
 use std::sync::Arc;
 use crate::grpc::v2beta2::event_service_proto::{
     AuthenticatedEvent, EventStreamHead, Proof, QueryAuthenticatedEventsRequest,
-    QueryAuthenticatedEventsResponse, EventContents, Bcs,
+    QueryAuthenticatedEventsResponse, Event, Bcs,
 };
 use sui_types::effects::TransactionEffectsAPI;
 
 
-fn to_grpc_event(ev: &sui_types::event::Event) -> EventContents {
-    let mut out = EventContents::default();
+fn to_grpc_event(ev: &sui_types::event::Event) -> Event {
+    let mut out = Event::default();
     out.package_id = Some(ev.package_id.to_canonical_string(true));
     out.module = Some(ev.transaction_module.to_string());
     out.sender = Some(ev.sender.to_string());
