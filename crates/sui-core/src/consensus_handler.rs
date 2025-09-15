@@ -3836,6 +3836,7 @@ mod tests {
             metrics,
             Arc::new(throughput),
             backpressure.subscribe(),
+            state.clone(),
         );
 
         handler.handle_consensus_commit(commit).await;
