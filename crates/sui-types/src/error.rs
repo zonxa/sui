@@ -285,6 +285,9 @@ pub enum UserInputError {
 
     #[error("Invalid withdraw reservation: {error}")]
     InvalidWithdrawReservation { error: String },
+
+    #[error("Transaction not valid during this epoch: {valid_epoch}")]
+    TransactionNotValidDuringThisEpoch { valid_epoch: u64 },
 }
 
 #[derive(
