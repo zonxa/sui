@@ -3217,6 +3217,10 @@ type Query {
 	"""
 	protocolConfigs(version: UInt53): ProtocolConfigs
 	"""
+	Unique request identifier for debugging.
+	"""
+	requestId: String
+	"""
 	Configuration for this RPC service.
 	"""
 	serviceConfig: ServiceConfig!

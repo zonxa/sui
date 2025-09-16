@@ -17,6 +17,7 @@ use crate::{
         },
     },
     error::{bad_user_input, upcast, RpcError},
+    extensions::logging::Session,
     pagination::{Page, PaginationConfig},
     scope::Scope,
 };
@@ -55,6 +56,12 @@ pub struct Query {
 
 #[Object]
 impl Query {
+    /// Unique request identifier for debugging.
+    async fn request_id(&self, ctx: &Context<'_>) -> Result<Option<String>, RpcError> {
+        let Session { request_id, .. } = *ctx.data()?;
+        Ok(Some(request_id.to_string()))
+    }
+
     /// Look-up an account by its SuiAddress.
     ///
     /// If `rootVersion` is specified, nested dynamic field accesses will be fetched at or before this version. This can be used to fetch a child or ancestor object bounded by its root object's version, when its immediate parent is wrapped, or a value in a dynamic object field. For any wrapped or child (object-owned) object, its root object can be defined recursively as:

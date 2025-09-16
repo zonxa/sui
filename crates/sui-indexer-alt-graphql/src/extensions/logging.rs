@@ -26,7 +26,10 @@ use crate::{
 /// Context data that tracks the session UUID and the client's address, to associate logs with a
 /// particular request.
 #[derive(Copy, Clone)]
-pub(crate) struct Session(Uuid, SocketAddr);
+pub(crate) struct Session {
+    pub request_id: Uuid,
+    pub client_addr: SocketAddr,
+}
 
 /// This extension is responsible for tracing and recording metrics for various GraphQL queries.
 pub(crate) struct Logging(pub Arc<RpcMetrics>);
@@ -39,7 +42,10 @@ struct LoggingExt {
 
 impl Session {
     pub(crate) fn new(addr: SocketAddr) -> Self {
-        Self(Uuid::new_v4(), addr)
+        Self {
+            request_id: Uuid::new_v4(),
+            client_addr: addr,
+        }
     }
 }
 
@@ -64,22 +70,25 @@ impl Extension for LoggingExt {
         self.metrics.queries_in_flight.dec();
 
         // SAFETY: This is set by `prepare_request`.
-        let Session(uuid, addr) = self.session.lock().unwrap().unwrap();
+        let Session {
+            request_id,
+            client_addr,
+        } = self.session.lock().unwrap().unwrap();
 
         if response.is_ok() {
-            info!(%uuid, %addr, elapsed_ms, "Request succeeded");
+            info!(%request_id, %client_addr, elapsed_ms, "Request succeeded");
             self.metrics.queries_succeeded.inc();
         } else {
             let codes = error_codes(&response);
 
             // Log internal errors, timeouts, and unknown errors at a higher log level than other errors.
             if is_loud_query(&codes) {
-                warn!(%uuid, %addr, query = self.query.lock().unwrap().as_ref().unwrap(), "Query");
+                warn!(%request_id, %client_addr, query = self.query.lock().unwrap().as_ref().unwrap(), "Query");
             } else {
-                debug!(%uuid, %addr, query = self.query.lock().unwrap().as_ref().unwrap(), "Query");
+                debug!(%request_id, %client_addr, query = self.query.lock().unwrap().as_ref().unwrap(), "Query");
             }
 
-            info!(%uuid, %addr, elapsed_ms, ?codes, "Request failed");
+            info!(%request_id, %client_addr, elapsed_ms, ?codes, "Request failed");
 
             if codes.is_empty() {
                 self.metrics
@@ -93,7 +102,7 @@ impl Extension for LoggingExt {
             }
         }
 
-        debug!(%uuid, %addr, response = %json!(response), "Response");
+        debug!(%request_id, %client_addr, response = %json!(response), "Response");
 
         response
     }
