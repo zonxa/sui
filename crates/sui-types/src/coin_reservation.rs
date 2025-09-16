@@ -25,8 +25,17 @@ use crate::{
     base_types::{ObjectID, ObjectRef, SequenceNumber},
     committee::EpochId,
     digests::ObjectDigest,
-    error::SuiError,
+    error::{SuiError, SuiResult},
+    transaction::FundsWithdrawalArg,
 };
+
+/// Trait for resolving funds withdrawal from a coin reservation
+pub trait CoinReservationResolverTrait {
+    fn resolve_funds_withdrawal(
+        &self,
+        coin_reservation: ObjectRef,
+    ) -> SuiResult<FundsWithdrawalArg>;
+}
 
 // Derived with: echo "accumulator id xor mask" | sha256sum
 // This mask is applied to the ID field in order to prevent clients from looking up

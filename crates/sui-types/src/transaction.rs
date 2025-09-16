@@ -6,7 +6,7 @@ use super::{base_types::*, error::*, SUI_BRIDGE_OBJECT_ID};
 use crate::accumulator_root::{AccumulatorObjId, AccumulatorValue};
 use crate::authenticator_state::ActiveJwk;
 use crate::balance::Balance;
-use crate::coin_reservation::{self, is_coin_reservation_digest};
+use crate::coin_reservation::{self, is_coin_reservation_digest, CoinReservationResolverTrait};
 use crate::committee::{Committee, EpochId, ProtocolVersion};
 use crate::crypto::{
     default_hash, AuthoritySignInfo, AuthoritySignInfoTrait, AuthoritySignature,
@@ -2377,6 +2377,7 @@ impl TransactionDataAPI for TransactionDataV1 {
         let mut withdraws = Vec::new();
         // TODO(address-balances): Once we support paying gas using address balances,
         // we add gas reservations here.
+
         // TODO(address-balances): Use a protocol config parameter for max_withdraws.
         let max_withdraws = 10;
         // First get all withdraw arguments.
@@ -2394,6 +2395,12 @@ impl TransactionDataAPI for TransactionDataV1 {
                 }
             }
         }
+
+        withdraws.extend(self.kind.coin_reservation_obj_refs().map(|obj| {
+            coin_reservation_resolver
+                .resolve_funds_withdrawal(obj)
+                .expect("funds withdrawal should have already been checked")
+        }));
 
         // Accumulate all withdraws per account.
         let mut withdraw_map = BTreeMap::new();

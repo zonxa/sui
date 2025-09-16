@@ -2,6 +2,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::accumulators::coin_reservation_settlement::CoinReservationResolver;
 use crate::checkpoints::CheckpointBuilderError;
 use crate::checkpoints::CheckpointBuilderResult;
 use crate::congestion_tracker::CongestionTracker;
@@ -896,6 +897,7 @@ pub struct AuthorityState {
     /// The database
     input_loader: TransactionInputLoader,
     execution_cache_trait_pointers: ExecutionCacheTraitPointers,
+    coin_reservation_resolver: CoinReservationResolver,
 
     epoch_store: ArcSwap<AuthorityPerEpochStore>,
 
@@ -1027,6 +1029,8 @@ impl AuthorityState {
                 }
             }
         }
+
+        let withdraws = tx_data.process_funds_withdrawals(&self.coin_reservation_resolver)?;
 
         let (input_objects, receiving_objects) = self.input_loader.read_objects_for_signing(
             Some(tx_digest),

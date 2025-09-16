@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use move_core_types::identifier::Identifier;
+use sui_json_rpc_api::CoinReadApiClient;
 use sui_json_rpc_types::SuiTransactionBlockEffectsAPI;
 use sui_keys::keystore::AccountKeystore;
 use sui_macros::*;
@@ -11,12 +12,13 @@ use sui_types::{
     accumulator_metadata::AccumulatorOwner,
     accumulator_root::{AccumulatorValue, U128},
     balance::Balance,
-    base_types::{ObjectRef, SuiAddress},
+    base_types::{ObjectRef, SequenceNumber, SuiAddress},
+    coin_reservation,
     effects::TransactionEffectsAPI,
     gas_coin::GAS,
     programmable_transaction_builder::ProgrammableTransactionBuilder,
     storage::ChildObjectResolver,
-    transaction::{Argument, Command, TransactionData, TransactionKind},
+    transaction::{Argument, Command, ObjectArg, TransactionData, TransactionKind},
     SUI_FRAMEWORK_PACKAGE_ID,
 };
 use test_cluster::TestClusterBuilder;
@@ -360,4 +362,56 @@ fn make_send_to_account_tx(
 
     let tx = TransactionKind::ProgrammableTransaction(builder.finish());
     TransactionData::new(tx, sender, gas, 10000000, rgp)
+}
+
+#[sim_test]
+async fn test_coin_reservation() {
+    let _guard = ProtocolConfig::apply_overrides_for_testing(|_, mut cfg| {
+        cfg.enable_accumulators_for_testing();
+        cfg.enable_coin_reservation_for_testing();
+        cfg
+    });
+
+    let mut test_cluster = TestClusterBuilder::new().build().await;
+    let rgp = test_cluster.get_reference_gas_price().await;
+    let context = &mut test_cluster.wallet;
+
+    let (sender, gas) = get_sender_and_gas(context).await;
+
+    // send 1000 from our gas coin to our balance
+    let tx = make_send_to_account_tx(1000, sender, sender, gas, rgp);
+    let res = test_cluster.sign_and_execute_transaction(&tx).await;
+    let gas = res.effects.unwrap().gas_object().reference.to_object_ref();
+
+    // look up the sui coin metadata object
+    let sui_metadata_id = test_cluster
+        .fullnode_handle
+        .rpc_client
+        .get_coin_metadata("0x2::sui::SUI".to_string())
+        .await
+        .unwrap()
+        .unwrap()
+        .id
+        .unwrap();
+
+    // create a coin reservation obj ref
+    let coin_reservation =
+        coin_reservation::encode_object_ref(sui_metadata_id, SequenceNumber::new(), 0, 1000)
+            .unwrap();
+
+    // transfer the coin reservation obj ref back to a regular coin
+    let mut builder = ProgrammableTransactionBuilder::new();
+
+    let coin_res_arg = builder
+        .obj(ObjectArg::ImmOrOwnedObject(coin_reservation))
+        .unwrap();
+
+    let recipient_arg = builder.pure(sender).unwrap();
+    builder.command(Command::TransferObjects(vec![coin_res_arg], recipient_arg));
+
+    let tx = TransactionKind::ProgrammableTransaction(builder.finish());
+    let tx = TransactionData::new(tx, sender, gas, 10000000, rgp);
+
+    let res = test_cluster.sign_and_execute_transaction(&tx).await;
+    dbg!(&res);
 }

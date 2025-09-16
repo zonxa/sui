@@ -245,7 +245,7 @@ impl ExecutionScheduler {
         for (cert, version, _) in &certs {
             let tx_withdraws = cert
                 .transaction_data()
-                .process_funds_withdrawals()
+                .process_funds_withdrawals(&self.epoch_store.coin_reservation_resolver)
                 .expect("Balance withdraws should have already been checked");
             assert!(!tx_withdraws.is_empty());
             if let Some(prev_version) = prev_version {

@@ -25,6 +25,9 @@ use crate::authority::epoch_start_configuration::EpochStartConfigTrait;
 use crate::execution_cache::TransactionCacheRead;
 use crate::execution_scheduler::balance_withdraw_scheduler::BalanceSettlement;
 
+pub mod balance_checks;
+pub mod coin_reservation_settlement;
+
 /// Merged value is the value stored inside accumulator objects.
 /// Each mergeable Move type will map to a single variant as its representation.
 ///

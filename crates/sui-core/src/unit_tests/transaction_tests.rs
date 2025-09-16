@@ -2699,3 +2699,8 @@ async fn coin_reservation_rejected_impl(
     dbg!(&err);
     assert!(err.contains(expected_error));
 }
+
+#[tokio::test]
+async fn test_coin_reservation_invalid_id_rejected() {
+    todo!("test that we reject coin reservations that don't specify a valid object id");
+}
