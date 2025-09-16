@@ -5,11 +5,13 @@ processed 3 tasks
 
 task 0, line 2:
 //# run std::bcs::to_bytes --type-args u256 --args 0u256
+reference inputs after call: local#0: 0
 return values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 task 1, line 4:
 //# run std::vector::borrow --type-args u64 --args vector[42] 0
-return values: 42
+reference inputs after call: local#0: [42]
+return values: (&) 42
 
 task 2, line 6:
 //# run std::type_name::get --type-args vector<std::type_name::TypeName>

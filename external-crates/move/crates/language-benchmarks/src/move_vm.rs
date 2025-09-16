@@ -2,16 +2,16 @@
 // Copyright (c) The Move Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use criterion::{Criterion, measurement::Measurement};
+use criterion::{measurement::Measurement, Criterion};
 use move_binary_format::CompiledModule;
 use move_compiler::{
-    Compiler, command_line::compiler::PreCompiledProgramInfo, editions::Edition,
-    shared::PackagePaths,
+    command_line::compiler::PreCompiledProgramInfo, editions::Edition, shared::PackagePaths,
+    Compiler,
 };
 use move_core_types::{
     account_address::AccountAddress,
     identifier::Identifier,
-    language_storage::{CORE_CODE_ADDRESS, ModuleId},
+    language_storage::{ModuleId, CORE_CODE_ADDRESS},
 };
 
 use move_vm_runtime::{
@@ -19,6 +19,7 @@ use move_vm_runtime::{
         in_memory_test_adapter::InMemoryTestAdapter, storage::StoredPackage,
         vm_test_adapter::VMTestAdapter,
     },
+    execution::values::Value,
     natives::move_stdlib::stdlib_native_functions,
 };
 use move_vm_runtime::{runtime::MoveRuntime, shared::gas::UnmeteredGasMeter};
@@ -148,7 +149,7 @@ fn execute<M: Measurement + 'static>(
                             module_id,
                             fun_name,
                             vec![],
-                            Vec::<Vec<u8>>::new(),
+                            vec![],
                             &mut UnmeteredGasMeter,
                             None,
                         )

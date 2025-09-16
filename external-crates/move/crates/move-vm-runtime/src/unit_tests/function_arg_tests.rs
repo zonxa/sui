@@ -7,6 +7,7 @@ use crate::{
         compilation_utils::{as_module, compile_units},
         in_memory_test_adapter::InMemoryTestAdapter,
         storage::StoredPackage,
+        vm_arguments::{ContextualizedValues, allocate_args_for_call},
         vm_test_adapter::VMTestAdapter,
     },
     shared::gas::UnmeteredGasMeter,
@@ -71,16 +72,21 @@ fn run(
         .map(|tag| sess.load_type(&tag))
         .collect::<VMResult<_>>()?;
 
-    let args: Vec<_> = args
-        .into_iter()
-        .map(|val| val.simple_serialize().unwrap())
-        .collect();
+    let ContextualizedValues { values, .. } = allocate_args_for_call(
+        &sess,
+        &module_id,
+        &fun_name,
+        &ty_args,
+        args.into_iter()
+            .map(|v| v.simple_serialize().unwrap())
+            .collect(),
+    )?;
 
     sess.execute_function_bypass_visibility(
         &module_id,
         &fun_name,
         ty_args,
-        args,
+        values,
         &mut UnmeteredGasMeter,
         None,
     )?;

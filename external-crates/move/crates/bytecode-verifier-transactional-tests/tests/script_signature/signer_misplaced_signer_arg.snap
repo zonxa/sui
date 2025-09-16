@@ -1,5 +1,12 @@
 ---
 source: crates/move-transactional-test-runner/src/framework.rs
-input_file: crates/bytecode-verifier-transactional-tests/tests/script_signature/signer_misplaced_signer_arg.mvir
 ---
 processed 2 tasks
+
+task 0, lines 1-8:
+//# run --args 0 @0x1
+reference inputs after call: local#1: { 0000000000000000000000000000000000000000000000000000000000000001 }
+
+task 1, lines 10-17:
+//# run --args 0 @0x1 1
+reference inputs after call: local#1: { 0000000000000000000000000000000000000000000000000000000000000001 }

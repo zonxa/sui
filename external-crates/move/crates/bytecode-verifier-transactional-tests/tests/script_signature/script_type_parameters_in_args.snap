@@ -1,5 +1,8 @@
 ---
 source: crates/move-transactional-test-runner/src/framework.rs
-input_file: crates/bytecode-verifier-transactional-tests/tests/script_signature/script_type_parameters_in_args.mvir
 ---
 processed 5 tasks
+
+task 1, lines 11-19:
+//# run --type-args u8 --args 1u8
+reference inputs after call: local#0: 1

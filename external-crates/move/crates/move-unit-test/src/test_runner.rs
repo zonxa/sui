@@ -30,7 +30,6 @@ use move_core_types::{
     vm_status::StatusCode,
 };
 use move_trace_format::format::{MoveTraceBuilder, TRACE_FILE_EXTENSION};
-use move_vm_runtime::{dev_utils::storage::StoredPackage, shared::gas::GasMeter};
 use move_vm_runtime::{
     dev_utils::{
         gas_schedule::{CostTable, Gas, GasStatus, unit_cost_schedule},
@@ -40,6 +39,10 @@ use move_vm_runtime::{
     },
     natives::functions::{NativeFunctionTable, NativeFunctions},
     runtime::MoveRuntime,
+};
+use move_vm_runtime::{
+    dev_utils::{storage::StoredPackage, vm_arguments::allocate_args_for_call},
+    shared::gas::GasMeter,
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use rayon::prelude::*;
@@ -310,18 +313,25 @@ impl SharedTestingConfig {
 
             let function_name = IdentStr::new(function_name).unwrap();
 
+            let args = allocate_args_for_call(
+                &vm_instance,
+                &module_id,
+                function_name,
+                &[],
+                serialize_values(arguments.iter()),
+            )?;
+
             let serialized_return_values_result = vm_instance.execute_function_bypass_visibility(
                 &module_id,
                 function_name,
                 vec![], /* no ty args for now */
-                serialize_values(arguments.iter()),
+                args.values,
                 gas_meter,
                 tracer,
             );
             serialized_return_values_result.map(|res| {
-                res.return_values
-                    .into_iter()
-                    .map(|(bytes, _layout)| bytes)
+                res.into_iter()
+                    .map(|val| val.serialize().expect("Value cannot fail to serialize"))
                     .collect::<Vec<_>>()
             })
         }

@@ -11,6 +11,7 @@ use crate::{
         compilation_utils::{compile_packages_in_file, expect_modules},
         in_memory_test_adapter::InMemoryTestAdapter,
         storage::{InMemoryStorage, StoredPackage},
+        vm_arguments::vm_value_to_move_value,
         vm_test_adapter::VMTestAdapter,
     },
     execution::dispatch_tables::{DepthFormula, IntraPackageKey, VirtualTableKey},
@@ -20,7 +21,6 @@ use crate::{
     shared::{
         gas::UnmeteredGasMeter,
         linkage_context::LinkageContext,
-        serialization::SerializedReturnValues,
         types::{OriginalId, VersionId},
     },
 };
@@ -248,7 +248,7 @@ impl Adapter {
                             &module_id,
                             &name,
                             vec![],
-                            Vec::<Vec<u8>>::new(),
+                            vec![],
                             &mut UnmeteredGasMeter,
                             None,
                         )
@@ -263,14 +263,21 @@ impl Adapter {
         }
     }
 
-    fn call_function_with_return(&self, module: &ModuleId, name: &IdentStr) -> Vec<MoveValue> {
-        self.call_function(module, name)
-            .return_values
-            .into_iter()
-            .map(|(bytes, ty)| {
-                MoveValue::simple_deserialize(&bytes[..], &ty)
-                    .expect("Can't deserialize return value")
-            })
+    fn call_function(&self, module: &ModuleId, name: &IdentStr) -> Vec<MoveValue> {
+        let vm = self.runtime_adapter.write();
+        let mut session = vm.make_vm(self.store.linkage.clone()).unwrap();
+        session
+            .execute_function_bypass_visibility(
+                module,
+                name,
+                vec![],
+                vec![],
+                &mut UnmeteredGasMeter,
+                None,
+            )
+            .unwrap_or_else(|e| panic!("Failure executing {module:?}::{name:?}: {e:#?}"))
+            .iter()
+            .map(|v| vm_value_to_move_value(v).unwrap())
             .collect()
     }
 
@@ -279,21 +286,6 @@ impl Adapter {
         let Err(_) = vm.make_vm(self.store.linkage.clone()) else {
             panic!("Should fail to make VM since function is missing");
         };
-    }
-
-    fn call_function(&self, module: &ModuleId, name: &IdentStr) -> SerializedReturnValues {
-        let vm = self.runtime_adapter.write();
-        let mut session = vm.make_vm(self.store.linkage.clone()).unwrap();
-        session
-            .execute_function_bypass_visibility(
-                module,
-                name,
-                vec![],
-                Vec::<Vec<u8>>::new(),
-                &mut UnmeteredGasMeter,
-                None,
-            )
-            .unwrap_or_else(|e| panic!("Failure executing {module:?}::{name:?}: {e:#?}"))
     }
 }
 
@@ -604,7 +596,7 @@ fn relink() {
         vec![MoveValue::U64(42 + 1)],
         adapter
             .with_linkage(BTreeMap::from([(ADDR2, ADDR2), (ADDR3, ADDR3),]), vec![],)
-            .call_function_with_return(&b0, ident_str!("b")),
+            .call_function(&b0, ident_str!("b")),
     );
 
     let mut adapter = adapter.with_linkage(
@@ -627,7 +619,7 @@ fn relink() {
 
     assert_eq!(
         vec![MoveValue::U64(44 + 43 + 1)],
-        adapter.call_function_with_return(&a0, ident_str!("a")),
+        adapter.call_function(&a0, ident_str!("a")),
     );
 }
 
@@ -683,7 +675,7 @@ fn relink_load_err() {
 
     assert_eq!(
         vec![MoveValue::U64(42 + 1)],
-        adapter.call_function_with_return(&b0, ident_str!("b")),
+        adapter.call_function(&b0, ident_str!("b")),
     );
 
     adapter
@@ -716,7 +708,7 @@ fn relink_load_err() {
 
     assert_eq!(
         vec![MoveValue::U64(44 * 43)],
-        adapter.call_function_with_return(&b0, ident_str!("b")),
+        adapter.call_function(&b0, ident_str!("b")),
     );
 
     // But B v1 *does not* work with C v0
@@ -1012,7 +1004,7 @@ fn publish_bundle_and_load() {
 
     assert_eq!(
         vec![MoveValue::U64(44 + 43 + 1)],
-        adapter.call_function_with_return(&a0, ident_str!("a")),
+        adapter.call_function(&a0, ident_str!("a")),
     );
 }
 
@@ -1060,7 +1052,7 @@ fn publish_bundle_with_err_retry() {
 
     assert_eq!(
         vec![MoveValue::U64(44 + 43 + 1)],
-        adapter.call_function_with_return(&a0, ident_str!("a")),
+        adapter.call_function(&a0, ident_str!("a")),
     );
 }
 

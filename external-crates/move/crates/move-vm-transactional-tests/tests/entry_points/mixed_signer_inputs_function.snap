@@ -2,3 +2,15 @@
 source: crates/move-transactional-test-runner/src/framework.rs
 ---
 processed 4 tasks
+
+task 1, line 24:
+//# run 0x42::M::main1 --args @0x1 @0x1 @0x1
+reference inputs after call: local#1: { 0000000000000000000000000000000000000000000000000000000000000001 }
+
+task 2, line 26:
+//# run 0x42::M::main2 --args @0x1 0 @0x1 false @0x1
+reference inputs after call: local#0: { 0000000000000000000000000000000000000000000000000000000000000001 }, local#4: { 0000000000000000000000000000000000000000000000000000000000000001 }
+
+task 3, line 28:
+//# run 0x42::M::main3 --args 0 false @0x1 @0x2 @0x3
+reference inputs after call: local#4: { 0000000000000000000000000000000000000000000000000000000000000003 }
