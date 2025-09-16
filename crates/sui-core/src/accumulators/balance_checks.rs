@@ -4,28 +4,39 @@
 use std::collections::BTreeMap;
 
 use sui_types::{
-    accumulator_root::AccumulatorValue,
+    accumulator_root::{AccumulatorObjId, AccumulatorValue, U128},
     error::{SuiError, SuiResult, UserInputError},
+    storage::ChildObjectResolver,
 };
-
-use crate::execution_cache::ObjectCacheRead;
 
 /// Checks if balances are available in the latest versions of the referenced acccumulator
 /// objects. This does un-sequenced reads and can only be used on the signing/voting path
 /// where deterministic results are not required.
 pub fn check_balances_available(
-    object_cache_read: &dyn ChildObjectResolver,
+    child_object_resolver: &dyn ChildObjectResolver,
     requested_balances: &BTreeMap<AccumulatorObjId, u64>,
 ) -> SuiResult<()> {
     for (object_id, balance) in requested_balances {
-        let accum_value = AccumulatorValue::load_by_id(child_object_resolver, None, *object_id)?;
+        let accum_value: U128 =
+            AccumulatorValue::load_by_id(child_object_resolver, None, *object_id)?.ok_or_else(
+                || SuiError::UserInputError {
+                    error: UserInputError::InvalidWithdrawReservation {
+                        error: format!("balance for object id {} is not found", object_id),
+                    },
+                },
+            )?;
 
-        if balance == 0 {
+        if accum_value.value < *balance as u128 {
             return Err(SuiError::UserInputError {
-                user_input_error: UserInputError::InvalidWithdrawReservation {
-                    error: format!("balance for object id {} is 0", object_id),
+                error: UserInputError::InvalidWithdrawReservation {
+                    error: format!(
+                        "balance for object id {} is less than requested: {} < {}",
+                        object_id, accum_value.value, balance
+                    ),
                 },
             });
         }
     }
+
+    Ok(())
 }

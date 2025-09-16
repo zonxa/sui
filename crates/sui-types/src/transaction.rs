@@ -2824,7 +2824,6 @@ impl SenderSignedData {
                     )
                 }
             );
-            tx_data.process_funds_withdrawals()?;
         }
 
         let coin_reservation_obj_refs = tx_data.coin_reservation_obj_refs();
