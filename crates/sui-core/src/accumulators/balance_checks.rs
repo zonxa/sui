@@ -30,7 +30,7 @@ pub fn check_balances_available(
             return Err(SuiError::UserInputError {
                 error: UserInputError::InvalidWithdrawReservation {
                     error: format!(
-                        "balance for object id {} is less than requested: {} < {}",
+                        "Available balance for object id {} is less than requested: {} < {}",
                         object_id, accum_value.value, balance
                     ),
                 },

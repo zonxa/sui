@@ -3,7 +3,7 @@
 
 use move_core_types::identifier::Identifier;
 use sui_json_rpc_api::CoinReadApiClient;
-use sui_json_rpc_types::SuiTransactionBlockEffectsAPI;
+use sui_json_rpc_types::{SuiTransactionBlockEffectsAPI, SuiTransactionBlockResponse};
 use sui_keys::keystore::AccountKeystore;
 use sui_macros::*;
 use sui_protocol_config::ProtocolConfig;
@@ -12,7 +12,7 @@ use sui_types::{
     accumulator_metadata::AccumulatorOwner,
     accumulator_root::{AccumulatorValue, U128},
     balance::Balance,
-    base_types::{ObjectRef, SequenceNumber, SuiAddress},
+    base_types::{ObjectID, ObjectRef, SequenceNumber, SuiAddress},
     coin_reservation,
     effects::TransactionEffectsAPI,
     gas_coin::GAS,
@@ -21,7 +21,7 @@ use sui_types::{
     transaction::{Argument, Command, ObjectArg, TransactionData, TransactionKind},
     SUI_FRAMEWORK_PACKAGE_ID,
 };
-use test_cluster::TestClusterBuilder;
+use test_cluster::{TestCluster, TestClusterBuilder};
 
 async fn get_sender_and_gas(context: &mut WalletContext) -> (SuiAddress, ObjectRef) {
     let sender = context
@@ -374,9 +374,8 @@ async fn test_coin_reservation() {
 
     let mut test_cluster = TestClusterBuilder::new().build().await;
     let rgp = test_cluster.get_reference_gas_price().await;
-    let context = &mut test_cluster.wallet;
 
-    let (sender, gas) = get_sender_and_gas(context).await;
+    let (sender, gas) = get_sender_and_gas(&mut test_cluster.wallet).await;
 
     // send 1000 from our gas coin to our balance
     let tx = make_send_to_account_tx(1000, sender, sender, gas, rgp);
@@ -394,11 +393,34 @@ async fn test_coin_reservation() {
         .id
         .unwrap();
 
-    // create a coin reservation obj ref
+    // Verify transaction is rejected if it reserves more than the available balance
     let coin_reservation =
-        coin_reservation::encode_object_ref(sui_metadata_id, SequenceNumber::new(), 0, 1000)
+        coin_reservation::encode_object_ref(sui_metadata_id, SequenceNumber::new(), 0, 1001)
             .unwrap();
 
+    let err = try_coin_reservation_tx(&mut test_cluster, coin_reservation, sender, gas)
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("is less than requested"));
+
+    // Verify transaction is rejected if it uses a bogus coin metadata id.
+    let coin_reservation =
+        coin_reservation::encode_object_ref(ObjectID::random(), SequenceNumber::new(), 0, 1001)
+            .unwrap();
+
+    let err = try_coin_reservation_tx(&mut test_cluster, coin_reservation, sender, gas)
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("is less than requested"));
+}
+
+async fn try_coin_reservation_tx(
+    test_cluster: &mut TestCluster,
+    coin_reservation: ObjectRef,
+    sender: SuiAddress,
+    gas: ObjectRef,
+) -> anyhow::Result<SuiTransactionBlockResponse> {
+    let rgp = test_cluster.get_reference_gas_price().await;
     // transfer the coin reservation obj ref back to a regular coin
     let mut builder = ProgrammableTransactionBuilder::new();
 
@@ -412,6 +434,9 @@ async fn test_coin_reservation() {
     let tx = TransactionKind::ProgrammableTransaction(builder.finish());
     let tx = TransactionData::new(tx, sender, gas, 10000000, rgp);
 
-    let res = test_cluster.sign_and_execute_transaction(&tx).await;
-    dbg!(&res);
+    let signed_tx = test_cluster.wallet.sign_transaction(&tx).await;
+    test_cluster
+        .wallet
+        .execute_transaction_may_fail(signed_tx)
+        .await
 }

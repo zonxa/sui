@@ -41,8 +41,8 @@ impl CoinReservationResolver {
 
     fn get_type_input_for_object(&self, object_id: &ObjectID) -> SuiResult<TypeInput> {
         let type_input = self.object_id_to_type_cache.get(object_id);
-        if type_input.is_some() {
-            return Ok(type_input.unwrap());
+        if let Some(type_input) = type_input {
+            return Ok(type_input);
         }
 
         let object = self
@@ -110,11 +110,11 @@ impl CoinReservationResolverTrait for CoinReservationResolver {
     }
 }
 
-impl<'a> CoinReservationResolverTrait for &'a CoinReservationResolver {
+impl CoinReservationResolverTrait for &'_ CoinReservationResolver {
     fn resolve_funds_withdrawal(
         &self,
         coin_reservation: ObjectRef,
     ) -> SuiResult<FundsWithdrawalArg> {
-        self.resolve_funds_withdrawal(coin_reservation)
+        CoinReservationResolver::resolve_funds_withdrawal(self, coin_reservation)
     }
 }
